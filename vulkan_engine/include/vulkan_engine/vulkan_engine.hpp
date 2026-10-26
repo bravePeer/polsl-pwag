@@ -191,11 +191,8 @@ private:
             .signalSemaphoreCount = 1,
             .pSignalSemaphores    = &*renderFinishedSemaphores[imageIndex]
         };
-
-
         
         queue.submit(submitInfo, *drawFence);
-             
              
         const vk::PresentInfoKHR presentInfoKHR{
             .waitSemaphoreCount = 1,
@@ -610,17 +607,6 @@ private:
         );
     }
 
-    // [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char>& code) const
-    // {
-    //     vk::ShaderModuleCreateInfo createInfo{ 
-    //         .codeSize = code.size() * sizeof(char),
-    //         .pCode = reinterpret_cast<const uint32_t*>(code.data())
-    //     };
-
-    //     vk::raii::ShaderModule shaderModule{device, createInfo };
-    //     return shaderModule;
-    // }
-
     const uint32_t frameIndex = 0;
     void recordCommandBuffer(uint32_t imageIndex)
     {
@@ -667,7 +653,7 @@ private:
         commandBuffer.bindVertexBuffers(0, *mesh.vertexBuffer.buffer, {0});
         commandBuffer.bindIndexBuffer(*mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
         commandBuffer.bindDescriptorSets(
-            vk::PipelineBindPoint::eGraphics, 
+            vk::PipelineBindPoint::eGraphics,
             pipelineLayout, 0, 
             *vkResourceManager->getDescriptorSets()[frameIndex], 
             nullptr

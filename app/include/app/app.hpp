@@ -10,6 +10,11 @@
 
 #include "vertex/object.hpp"
 
+#include "component/component.hpp"
+#include "component/entity.hpp"
+
+#include <memory>
+
 class App
 {
 public:
@@ -47,6 +52,10 @@ public:
 
         vkEngine.getResourceManager().loadObject(objects[1].mesh);
         vkEngine.getResourceManager().getVkObject().setModelTransform(objects[1].transform.getModelMatrix());
+
+        Entity spammer;
+        spammer.addComponent<ComponentSpamer>(1, "Spam");
+        entities.push_back(std::move(spammer));
     }
     
     App(const App&) = delete;
@@ -58,6 +67,7 @@ public:
 
     void run()
     {
+        frameLastTime = std::chrono::steady_clock::now();
         while (!window.shouldClose())
         {
             updateTime();
@@ -88,19 +98,20 @@ private:
     VulkanEngine vkEngine;
 
     std::vector<Object> objects;
+    std::vector<Entity> entities;
 
     std::chrono::time_point<std::chrono::steady_clock> frameLastTime;
-    std::chrono::duration<float> deltaTime;
+    std::chrono::duration<float> deltaTimeDuration;
     void updateTime()
     {
         auto now = std::chrono::steady_clock::now();
-        deltaTime = std::chrono::duration<float>(now - frameLastTime);
+        deltaTimeDuration = std::chrono::duration<float>(now - frameLastTime);
         frameLastTime = now;
     }
 
     float getFps()
     {
-        return 1.f / deltaTime.count();
+        return 1.f / deltaTimeDuration.count();
     }
 
     void fixedUpdate()
@@ -110,6 +121,11 @@ private:
 
     void update()
     {
+        const float deltaTime = deltaTimeDuration.count();
 
+        for(auto& entity : entities)
+        {
+            entity.update(deltaTime);
+        }
     }
 };
