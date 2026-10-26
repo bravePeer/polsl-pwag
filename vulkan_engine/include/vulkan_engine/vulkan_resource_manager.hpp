@@ -2,9 +2,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <cstdint>
 #include <glm/glm.hpp>
-
-constexpr uint32_t kMaxFramesInFlight = 1;
-constexpr uint32_t kMaxObjects = 1;
+#include "vulkan_engine/vulkan_config.hpp"
 
 struct VulkanBuffer
 {

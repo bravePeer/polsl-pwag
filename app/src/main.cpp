@@ -1,7 +1,5 @@
 #include "app/app.hpp"
-
-constexpr uint32_t kWidth = 800;
-constexpr uint32_t kHeight = 600;
+#include "app/app_config.hpp"
 
 int main()
 {

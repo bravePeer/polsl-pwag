@@ -5,8 +5,8 @@ target_sources(vulkan_engine INTERFACE
     FILE_SET HEADERS
     BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include
     FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vulkan_engine/config.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/include/vulkan_engine/shader_loader.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vulkan_engine/vulkan_config.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/vulkan_engine/vulkan_shader_loader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/include/vulkan_engine/vulkan_engine.hpp
 )
 target_compile_features(vulkan_engine INTERFACE cxx_std_20)

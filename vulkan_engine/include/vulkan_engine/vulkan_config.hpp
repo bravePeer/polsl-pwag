@@ -6,3 +6,6 @@ const std::vector<const char*> validationLayers = {
 };
 
 constexpr bool enableValidationLayers = true;
+
+constexpr uint32_t kMaxFramesInFlight = 1;
+constexpr uint32_t kMaxObjects = 1;
