@@ -12,6 +12,10 @@
 
 #include "component/component.hpp"
 #include "component/entity.hpp"
+#include "component/component_utils.hpp"
+
+#include "resource/resource.hpp"
+#include "resource/resource_manager.hpp"
 
 #include <memory>
 
@@ -56,6 +60,11 @@ public:
         Entity spammer;
         spammer.addComponent<ComponentSpamer>(1, "Spam");
         entities.push_back(std::move(spammer));
+        Entity spammer2;
+        spammer2.addComponent<ComponentSpamer>(2, "Spam2");
+        entities.push_back(std::move(spammer2));
+
+        componentsDump(entities);
     }
     
     App(const App&) = delete;
