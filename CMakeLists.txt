@@ -25,7 +25,11 @@ find_package(glm REQUIRED)
 find_package(slang CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
 
-add_executable(vulkan_app main.cpp)
+add_subdirectory(app)
+add_subdirectory(vulkan_engine)
+add_subdirectory(modules)
+
+# add_executable(vulkan_app main.cpp)
 target_compile_definitions(vulkan_app PRIVATE
         VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
         VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
@@ -65,11 +69,7 @@ else()
   target_link_libraries(vulkan_app PRIVATE Vulkan::Vulkan)
 endif()
 
-# add_subdirectory(vulkan_engine)
-# add_subdirectory(app)
-
-# target_link_libraries(${PROJECT_NAME} PRIVATE vulkan_engine::vulkan_engine)
-
+target_link_libraries(${PROJECT_NAME} PRIVATE vulkan_engine::vulkan_engine)
 
 # Compiling shaders
 function (add_slang_shader_target TARGET)
