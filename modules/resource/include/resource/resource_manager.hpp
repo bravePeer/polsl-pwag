@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <cstdint>
 #include "resource/resource.hpp"
+#include "vulkan_engine/vulkan_context.hpp"
 
 class ResourceManager;
 
@@ -53,9 +54,17 @@ private:
 class ResourceManager
 {
 public:
+    ResourceManager(VulkanContext vulkanContext)
+    : vulkanContext(vulkanContext)
+    { }
 
-    template <typename T>
-    ResourceHandle<T> load(const std::string& nameId)
+    ~ResourceManager()
+    {
+        unloadAll();
+    }
+
+    template <typename T, typename... Args>
+    ResourceHandle<T> load(const std::string& nameId, Args&&... args)
     {
         static_assert(std::is_base_of_v<Resource, T>, "T must derive from Resource");
 
@@ -68,7 +77,7 @@ public:
             return ResourceHandle<T>(nameId, this);
         }
 
-        auto resource = std::make_shared<T>(nameId);
+        auto resource = std::make_shared<T>(nameId, vulkanContext, std::forward<Args>(args)...);
         if(!resource->load())
         {
             return ResourceHandle<T>();
@@ -115,14 +124,69 @@ public:
         return it != resourcesType.end();
     }
 
+    template <typename T>
+    void unload(const std::string& nameId)
+    {
+        auto itm = refCounts.find(std::type_index(typeid(T)));
+        if(itm == refCounts.end())
+        {
+            return;
+        }
+
+        auto& resourcesType = itm->second;
+        auto it = resourcesType.find(nameId);
+        if(it == resourcesType.end())
+        {
+            return;
+        }
+
+        auto& resourceData = it->second;
+        --resourceData.refCount;
+
+        if(resourceData.refCount == 0)
+        {
+            if(resourceData.resource)
+            {
+                resourceData.resource->unload();
+            }
+
+            auto& resIt = resources.find(std::type_index(typeid(T)));
+            if(resIt != resources.end())
+            {
+                auto& res = resIt->second;
+                auto resIt2 = res.find(nameId);
+                if(resIt2 != res.end())
+                {
+                    res.erase(resIt2);
+                }
+            }
+
+            resourcesType.erase(it);
+        }
+    }
+
+    void unloadAll()
+    {
+        for(auto& [resourceTypeId, resourceType] : resources)
+        {
+            for(auto& [nameId, resource] : resourceType)
+            {
+                resource->unload();
+            }
+        }
+
+        resources.clear();
+        refCounts.clear();
+    }
 
 private:
+    VulkanContext vulkanContext;
     std::unordered_map<std::type_index, std::unordered_map<std::string, std::shared_ptr<Resource>>> resources;
 
     struct ResourceData
     {
         std::shared_ptr<Resource> resource;
-        uint32_t refCount;
+        uint32_t refCount = 0;
     };
     std::unordered_map<std::type_index, std::unordered_map<std::string, ResourceData>> refCounts;
 };

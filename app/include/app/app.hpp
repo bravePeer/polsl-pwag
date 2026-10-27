@@ -37,7 +37,8 @@ public:
               throw std::runtime_error("surface");
           return s;
       }},
-      vkEngine(windowProvider)
+      vkEngine(windowProvider),
+      resourceManager(vkEngine.getContext())
     {
         window.setWindowResizeCb([](GLFWwindow* window, int width, int height){
             auto engine = reinterpret_cast<VulkanEngine*>(glfwGetWindowUserPointer(window));
@@ -56,6 +57,13 @@ public:
 
         vkEngine.getResourceManager().loadObject(objects[1].mesh);
         vkEngine.getResourceManager().getVkObject().setModelTransform(objects[1].transform.getModelMatrix());
+
+        // resourceManager.load<ResourceMesh>("test");
+        ResourceMesh::ResourceMeshData data{
+            .vertices = triangleVertices,
+            .indices = triangleIndices
+        };
+        resourceManager.load<ResourceMesh>("test2", std::make_unique<ResourceMesh::ResourceMeshData>(data));
 
         Entity spammer;
         spammer.addComponent<ComponentSpamer>(1, "Spam");
@@ -105,6 +113,7 @@ private:
     Window window;
     WindowProvider windowProvider;
     VulkanEngine vkEngine;
+    ResourceManager resourceManager;
 
     std::vector<Object> objects;
     std::vector<Entity> entities;

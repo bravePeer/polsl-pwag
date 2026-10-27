@@ -21,6 +21,7 @@
 #include "vulkan_engine/vulkan_config.hpp"
 #include "vulkan_resource_manager.hpp"
 #include "vulkan_engine/vulkan_shader_loader.hpp"
+#include "vulkan_engine/vulkan_context.hpp"
 
 struct WindowProvider
 {
@@ -71,6 +72,16 @@ public:
 
     VulkanEngine(const VulkanEngine&) = delete;
     VulkanEngine& operator=(const VulkanEngine&) = delete;
+
+    VulkanContext getContext()
+    {
+        return VulkanContext{
+            .device = device,
+            .physicalDevice = physicalDevice,
+            .queue = queue,
+            .commandPool = commandPool
+        };
+    }
 
     /// @brief Temporary method during refactor
     bool drawFramePub()

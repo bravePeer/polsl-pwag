@@ -47,6 +47,7 @@ public:
     {
         createVertexBuffer(object);
         createIndexBuffer(object);
+        
         createUniformBuffer();
         createDescriptorSet();
     }
