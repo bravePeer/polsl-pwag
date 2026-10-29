@@ -22,6 +22,7 @@ public:
         }
 
         auto component = std::make_unique<T>(std::forward<Args>(args)...);
+        component->setOwner(this);
         T* ptr = component.get();
         componentsMap[typeId] = ptr;
         components.push_back(std::move(component));

@@ -1,7 +1,7 @@
 #pragma once
+#include <iostream>
 #include <vector>
 #include <component/entity.hpp>
-#include <iostream>
 
 inline void componentsDump(std::vector<Entity>& entities)
 {

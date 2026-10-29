@@ -11,6 +11,9 @@
 #include "vertex/object.hpp"
 
 #include "component/component.hpp"
+#include "component/component_spamer.hpp"
+#include "component/component_transform.hpp"
+#include "component/component_camera.hpp"
 #include "component/entity.hpp"
 #include "component/component_utils.hpp"
 
@@ -64,6 +67,8 @@ public:
             .indices = triangleIndices
         };
         resourceManager.load<ResourceMesh>("test2", std::make_unique<ResourceMesh::ResourceMeshData>(data));
+
+        resourceManager.getResource<ResourceMesh>("test2");
 
         Entity spammer;
         spammer.addComponent<ComponentSpamer>(1, "Spam");
