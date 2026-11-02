@@ -23,6 +23,9 @@
 #include "vulkan_engine/vulkan_shader_loader.hpp"
 #include "vulkan_engine/vulkan_context.hpp"
 
+#include "vulkan_engine/culling.hpp"
+#include "vulkan_engine/buffer_creator.hpp"
+
 struct WindowProvider
 {
     std::vector<const char*> instanceExtensions;
@@ -40,7 +43,6 @@ public:
         {
             throw std::invalid_argument("WindowProvider: missing callback");
         }
-
         createInstance();
         /// @todo setupDebugMessenger();
         createSurface();
@@ -50,16 +52,8 @@ public:
         createImageViews();
         vkResourceManager.emplace(device, physicalDevice, queue, commandPool);
         // createDescriptorSetLayout();
-        createGraphicsPipeline();
         createCommandPool();
-        
-        // createVertexBuffer();
-        // createIndexBuffer();
-        // createUniformBuffers();
-
-        // createDescriptorPool();
-        // createDescriptorSets();
-
+  
         createCommandBuffer();
         createSyncObjects();
     }
@@ -68,6 +62,13 @@ public:
         device.waitIdle();
 
         cleanupSwapChain();
+    }
+
+    void init()
+    {
+
+        createGraphicsPipeline();
+
     }
 
     VulkanEngine(const VulkanEngine&) = delete;
@@ -82,6 +83,12 @@ public:
             .commandPool = commandPool
         };
     }
+
+    void setBufferCreator(BufferCreator* bf)
+    {
+        buffCreator = bf;
+    }
+
 
     /// @brief Temporary method during refactor
     bool drawFramePub()
@@ -188,9 +195,9 @@ private:
         }
 
 		device.resetFences(*drawFence);
-        updateUniformBuffer(0);
+        updateUniformBuffer2(0);
         
-        recordCommandBuffer(imageIndex);
+        recordCommandBuffer2(imageIndex);
 
         vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
         const vk::SubmitInfo   submitInfo{
@@ -495,11 +502,13 @@ private:
     {
         assert(swapChainImageViews.empty());
 
-        vk::ImageViewCreateInfo imageViewCreateInfo{ .viewType         = vk::ImageViewType::e2D,
-                                                    .format           = swapChainSurfaceFormat.format,
-                                                    .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 } };
+        vk::ImageViewCreateInfo imageViewCreateInfo{ 
+            .viewType         = vk::ImageViewType::e2D,
+            .format           = swapChainSurfaceFormat.format,
+            .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
+        };
 
-        for (auto &image : swapChainImages)
+        for (auto& image : swapChainImages)
         {
             imageViewCreateInfo.image = image;
             swapChainImageViews.emplace_back( device, imageViewCreateInfo );
@@ -581,7 +590,8 @@ private:
     
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ 
             .setLayoutCount = 1, 
-            .pSetLayouts = &*vkResourceManager->getDescriptorSetLayout(),
+            // .pSetLayouts = &*vkResourceManager->getDescriptorSetLayout(),
+            .pSetLayouts = &*buffCreator->getDescriptorSetLayout(),
             .pushConstantRangeCount = 0 
         };
         
@@ -670,7 +680,7 @@ private:
             nullptr
         );
         commandBuffer.drawIndexed(mesh.size, 1, 0, 0, 0);
-            
+
 
         // End rendering
         commandBuffer.endRendering();
@@ -756,5 +766,88 @@ private:
             &ubo,
             sizeof(UniformBufferObject)
         );
+    }
+
+    BufferCreator* buffCreator = nullptr;
+
+    void updateUniformBuffer2(uint32_t currentImage)
+    {
+        buffCreator->updateUbo();
+    }
+
+    void recordCommandBuffer2(uint32_t imageIndex)
+    {
+        commandBuffer.begin({});
+
+        // Transition the image layout for rendering
+        transition_image_layout(
+            imageIndex,
+            vk::ImageLayout::eUndefined,
+            vk::ImageLayout::eColorAttachmentOptimal,
+            {},
+            vk::AccessFlagBits2::eColorAttachmentWrite,
+            vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            vk::PipelineStageFlagBits2::eColorAttachmentOutput
+        );
+
+        // Set up the color attachment
+        vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
+        vk::RenderingAttachmentInfo attachmentInfo = {
+                .imageView   = swapChainImageViews[imageIndex],
+                .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                .loadOp      = vk::AttachmentLoadOp::eClear,
+                .storeOp     = vk::AttachmentStoreOp::eStore,
+                .clearValue  = clearColor};
+
+        // Set up the rendering info
+        vk::RenderingInfo renderingInfo = {
+                .renderArea           = {.offset = {0, 0}, .extent = swapChainExtent},
+                .layerCount           = 1,
+                .colorAttachmentCount = 1,
+                .pColorAttachments    = &attachmentInfo};
+
+        // Begin rendering
+        commandBuffer.beginRendering(renderingInfo);
+
+        // Rendering commands will go here
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline);
+        commandBuffer.setViewport(0, vk::Viewport(0.0f, static_cast<float>(swapChainExtent.height), static_cast<float>(swapChainExtent.width), -static_cast<float>(swapChainExtent.height), 0.0f, 1.0f));
+        // commandBuffer.setViewport(0, vk::Viewport(0, 0, (float)swapChainExtent.width, (float)swapChainExtent.height, 0, 1));
+        commandBuffer.setScissor(0, vk::Rect2D({0, 0}, swapChainExtent));
+        
+
+        auto& mesh = vkResourceManager->getVkMesh();
+        commandBuffer.bindVertexBuffers(0, *mesh.vertexBuffer.buffer, {0});
+        commandBuffer.bindIndexBuffer(*mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+
+        for(size_t i = 0; i < buffCreator->getSize(); i++)
+        {
+            uint32_t offset = buffCreator->offset(frameIndex, i);
+            commandBuffer.bindDescriptorSets(
+                vk::PipelineBindPoint::eGraphics,
+                pipelineLayout, 
+                0,
+                *buffCreator->getDescriptorSets(), 
+                offset
+            );
+            commandBuffer.drawIndexed(mesh.size, 1, 0, 0, 0);
+        }
+
+
+        // End rendering
+        commandBuffer.endRendering();
+
+        // Transition the image layout for presentation
+        transition_image_layout(
+            imageIndex,
+            vk::ImageLayout::eColorAttachmentOptimal,
+            vk::ImageLayout::ePresentSrcKHR,
+            vk::AccessFlagBits2::eColorAttachmentWrite,
+            {},
+            vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            vk::PipelineStageFlagBits2::eBottomOfPipe
+        );
+
+        commandBuffer.end();
     }
 };

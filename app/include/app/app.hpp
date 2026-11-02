@@ -2,25 +2,29 @@
 #include <iostream>
 #include <stdexcept>
 #include <chrono>
+#include <memory>
 
 #include "app/app_config.hpp"
 #include "app/window.hpp"
 #include "vulkan_engine/vulkan_engine.hpp"
 #include "vulkan_engine/vulkan_resource_manager.hpp"
+#include "vulkan_engine/buffer_creator.hpp"
 
 #include "vertex/object.hpp"
 
-#include "component/component.hpp"
+#include "component/entity.hpp"
 #include "component/component_spamer.hpp"
 #include "component/component_transform.hpp"
 #include "component/component_camera.hpp"
-#include "component/entity.hpp"
 #include "component/component_utils.hpp"
+#include "component/component_mesh.hpp"
+#include "component/component_any.hpp"
 
-#include "resource/resource.hpp"
 #include "resource/resource_manager.hpp"
+#include "resource/resource_mesh.hpp"
 
-#include <memory>
+#include "component/scene.hpp"
+
 
 class App
 {
@@ -41,12 +45,15 @@ public:
           return s;
       }},
       vkEngine(windowProvider),
-      resourceManager(vkEngine.getContext())
+      resourceManager(vkEngine.getContext()),
+      buffCreator(vkEngine.getContext())
     {
+        vkEngine.setBufferCreator(&buffCreator);
         window.setWindowResizeCb([](GLFWwindow* window, int width, int height){
             auto engine = reinterpret_cast<VulkanEngine*>(glfwGetWindowUserPointer(window));
             engine->setWindowResized(true);
         }, &vkEngine);
+
 
         objects.push_back(createRectangle());
         objects.push_back(createRectangle());
@@ -61,36 +68,51 @@ public:
         vkEngine.getResourceManager().loadObject(objects[1].mesh);
         vkEngine.getResourceManager().getVkObject().setModelTransform(objects[1].transform.getModelMatrix());
 
-        // resourceManager.load<ResourceMesh>("test");
         ResourceMesh::ResourceMeshData data{
             .vertices = triangleVertices,
             .indices = triangleIndices
         };
         resourceManager.load<ResourceMesh>("test2", std::make_unique<ResourceMesh::ResourceMeshData>(data));
+        auto rMesh = resourceManager.getResource<ResourceMesh>("test2");
 
-        resourceManager.getResource<ResourceMesh>("test2");
+        auto& camera = scene.createEntity("main_camera");
+        camera.addComponent<ComponentCamera>();
+        camera.addComponent<ComponentTransform>();
 
-        Entity spammer;
+        auto& spammer = scene.createEntity();
         spammer.addComponent<ComponentSpamer>(1, "Spam");
-        entities.push_back(std::move(spammer));
-        Entity spammer2;
-        spammer2.addComponent<ComponentSpamer>(2, "Spam2");
-        entities.push_back(std::move(spammer2));
 
-        componentsDump(entities);
+        auto& spammer2 = scene.createEntity();
+        spammer2.addComponent<ComponentSpamer>(2, "Spam2");
+
+        auto& mesh1 = scene.createEntity();
+        mesh1.addComponent<ComponentMesh>();
+        mesh1.getComponent<ComponentMesh>()->setMesh(rMesh);
+        mesh1.addComponent<ComponentTransform>();
+        mesh1.addComponent<ComponentTransform>()->setPosition({0.f, -0.5f, -5.5f});
+
+        auto& mesh2 = scene.createEntity();
+        mesh2.addComponent<ComponentMesh>();
+        mesh2.getComponent<ComponentMesh>()->setMesh(rMesh);
+        mesh2.addComponent<ComponentTransform>()->setPosition({0.f, 0.f, -10.5f});
+
+        buffCreator.addToGenerate(scene.getEntities());
+        buffCreator.createBuffers();
+        buffCreator.createDescriptorSet();
+        vkEngine.init();
+
+        /// Add Entity to 
     }
     
     App(const App&) = delete;
 
     ~App() noexcept
-    {
-
-    }
+    { }
 
     void run()
     {
         frameLastTime = std::chrono::steady_clock::now();
-        while (!window.shouldClose())
+        while (!window.shouldClose() || !shouldExit)
         {
             updateTime();
 
@@ -99,29 +121,27 @@ public:
 
             // Updates
             fixedUpdate();
+
             update();
 
-            // Draw frame
-            if(vkEngine.drawFramePub())
-            { /// Recreating swap chan
-                window.waitIfMinimize();
-                if(window.shouldClose())
-                {
-                    break;
-                }
-                vkEngine.recreateSwapChainPub();
-            }
+            render();
         }
     }
 
 private:
+    bool shouldExit = false;
+
     Window window;
     WindowProvider windowProvider;
     VulkanEngine vkEngine;
     ResourceManager resourceManager;
+    SceneCulling culling;
+
+    Scene scene;
+
+    BufferCreator buffCreator;
 
     std::vector<Object> objects;
-    std::vector<Entity> entities;
 
     std::chrono::time_point<std::chrono::steady_clock> frameLastTime;
     std::chrono::duration<float> deltaTimeDuration;
@@ -145,10 +165,36 @@ private:
     void update()
     {
         const float deltaTime = deltaTimeDuration.count();
+        scene.update(deltaTime);
 
-        for(auto& entity : entities)
-        {
-            entity.update(deltaTime);
+        auto camera = scene.getEntityByName("main_camera")->getComponent<ComponentCamera>();
+        buffCreator.set(camera->getViewMatrix(), camera->getProjectionMatrix());
+    }
+
+    void render()
+    {
+        std::vector<Entity*> visibleEntities = culling.getVisibleEntities(scene);
+
+        // Draw frame
+        if(vkEngine.drawFramePub())
+        { /// Recreating swap chan
+            window.waitIfMinimize();
+            if(window.shouldClose())
+            {
+                shouldExit = true;
+                return;
+            }
+            vkEngine.recreateSwapChainPub();
         }
+    }
+
+    void initMainCamera()
+    {
+        Entity* entityWithCamera = scene.getEntityByName("main_camera");
+        if(!entityWithCamera)
+        {
+            throw std::runtime_error("No camera on scene");
+        }
+        culling.setCamera(entityWithCamera->getComponent<ComponentCamera>());
     }
 };

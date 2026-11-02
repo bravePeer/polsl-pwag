@@ -41,3 +41,4 @@ Object createRectangle()
     static auto mesh = ObjectMesh(vertices, indices);
     return Object(mesh, ObjectTransform());
 }
+

@@ -6,8 +6,9 @@
 
 struct VulkanBuffer
 {
-    vk::raii::Buffer buffer = nullptr;
     vk::raii::DeviceMemory bufferMemory = nullptr;
+    vk::raii::Buffer buffer = nullptr;
+    void* mapped = nullptr;
 };
 
 struct VulkanMesh
@@ -127,7 +128,11 @@ private:
     void createVertexBuffer(ObjectMesh& object)
     {
         vk::DeviceSize bufferSize = sizeof(Vertex) * object.vertices.size();
-        auto stagingBuffer = createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+        auto stagingBuffer = createBuffer(
+            bufferSize, 
+            vk::BufferUsageFlagBits::eTransferSrc, 
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+        );
 
         void *dataStaging = stagingBuffer.bufferMemory.mapMemory(0, bufferSize);
         memcpy(dataStaging, object.vertices.data(), bufferSize);

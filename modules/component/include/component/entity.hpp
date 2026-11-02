@@ -4,11 +4,24 @@
 #include <vector>
 #include <memory>
 #include <unordered_map>
+#include <string>
 
 /// @brief Container for components
 class Entity
 {
 public:
+    explicit Entity(std::string name = "")
+    : name(name)
+    { }
+
+    Entity(const Entity&) = delete;
+    
+    Entity& operator=(const Entity&) = delete;
+    
+    Entity(Entity&&) = delete;
+    
+    Entity& operator=(Entity&&) = delete;
+
     template <typename T, typename... Args>
     T* addComponent(Args&&... args)
     {
@@ -107,9 +120,15 @@ public:
         active = activee;
     }
 
+    std::string getName() const
+    {
+        return name;
+    }
+
 private:
     std::vector<std::unique_ptr<Component>> components;
     std::unordered_map<TypeId, Component*> componentsMap;
+    std::string name;
 
     bool active = true;
 };
