@@ -1,10 +1,12 @@
 #pragma once
 #include "resource/resource.hpp"
+#include "resource/resource_utils.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include <cstdint>
 
 class ResourceMesh : public Resource
 {
+friend class ResourceManager;
 public:
     struct ResourceMeshData
     {
@@ -22,18 +24,14 @@ public:
         }
     };
 
-    struct VulkanBuffer
+    struct ResourceMeshLocation
     {
-        vk::raii::DeviceMemory bufferMemory = nullptr;
-        vk::raii::Buffer buffer = nullptr;
-        vk::DeviceSize offset = 0;
-        uint32_t count = 0;
+        vk::DeviceSize vertexOffset;
+        vk::DeviceSize vertexSize;
+        vk::DeviceSize indexOffset;
+        vk::DeviceSize indexSize;
+        vk::DeviceSize indexCount;
     };
-
-    /// Temporary in comment
-    // explicit ResourceMesh(const std::string& nameId)
-    // : Resource(nameId)
-    // { }
 
     explicit ResourceMesh(const std::string& nameId, VulkanContext& vulkanContext, std::unique_ptr<ResourceMeshData> meshData)
     : Resource(nameId, vulkanContext), meshData(std::move(meshData))
@@ -47,11 +45,34 @@ public:
         }
     }
 
-private:
-    VulkanBuffer vertexBuffer;
-    VulkanBuffer indexBuffer;
-    std::unique_ptr<ResourceMeshData> meshData = nullptr;
+    ResourceMeshLocation& getMeshLocation()
+    {
+        return meshLocation;
+    }
 
+    void setVerticesLocation(vk::DeviceSize vertexOffset, vk::DeviceSize vertexSize)
+    {
+        meshLocation.vertexOffset = vertexOffset;
+        meshLocation.vertexSize = vertexSize;
+    }
+
+    void setIndicesLocation(vk::DeviceSize indexOffset, vk::DeviceSize indexSize)
+    {
+        meshLocation.indexOffset = indexOffset;
+        meshLocation.indexSize = indexSize;
+        meshLocation.indexCount = indexSize / sizeof(uint32_t);
+    }
+
+protected:
+    std::unique_ptr<ResourceMeshData>& getMeshData()
+    {
+        return meshData;
+    }
+
+private:
+    ResourceMeshLocation meshLocation;
+    std::unique_ptr<ResourceMeshData> meshData = nullptr;
+    
     bool doLoad() override
     {
         if(!meshData)
@@ -59,115 +80,11 @@ private:
             return false;
         }
 
-        createVertexBuffer();
-        createIndexBuffer();
-
         return true;
     }
 
     void doUnload() override
     {
-
+        meshData = nullptr;
     }
-
-    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
-    {
-        vk::PhysicalDeviceMemoryProperties memProperties = vulkanContext.physicalDevice.getMemoryProperties();
-
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
-        {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-            {
-                return i;
-            }
-        }
-
-        throw std::runtime_error("Failed to find suitable memory type!");
-    }
-
-    VulkanBuffer createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
-    {
-        VulkanBuffer buffer;
-
-        vk::BufferCreateInfo bufferInfo{
-            .size = size, 
-            .usage = usage, 
-            .sharingMode = vk::SharingMode::eExclusive
-        };
-        buffer.buffer = vk::raii::Buffer(vulkanContext.device, bufferInfo);
-
-        vk::MemoryRequirements memRequirements = buffer.buffer.getMemoryRequirements();
-        vk::MemoryAllocateInfo allocInfo{
-            .allocationSize = memRequirements.size,
-            .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties)
-        };
-        buffer.bufferMemory = vk::raii::DeviceMemory(vulkanContext.device, allocInfo);
-        buffer.buffer.bindMemory(*buffer.bufferMemory, 0);
-        buffer.offset = 0;
-
-        return std::move(buffer);
-    }
-
-    void createVertexBuffer()
-    {
-        vk::DeviceSize bufferSize = meshData->getVerticesSize();
-        auto stagingBuffer = createBuffer(
-            bufferSize, 
-            vk::BufferUsageFlagBits::eTransferSrc, 
-            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
-        );
-
-        void *dataStaging = stagingBuffer.bufferMemory.mapMemory(0, bufferSize);
-        memcpy(dataStaging, meshData->vertices.data(), bufferSize);
-        stagingBuffer.bufferMemory.unmapMemory();
-
-        vertexBuffer = createBuffer(
-            bufferSize, 
-            vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, 
-            vk::MemoryPropertyFlagBits::eDeviceLocal
-        );
-
-        copyBuffer(vertexBuffer.buffer, stagingBuffer.buffer, bufferSize);
-        vertexBuffer.count = static_cast<uint32_t>(meshData->vertices.size());
-    }
-
-    void createIndexBuffer()
-    {
-        vk::DeviceSize bufferSize = meshData->getIndicesSize();
-        auto stagingBuffer = createBuffer(
-            bufferSize, 
-            vk::BufferUsageFlagBits::eTransferSrc, 
-            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
-        );
-
-        void* data = stagingBuffer.bufferMemory.mapMemory(0, bufferSize);
-        memcpy(data, meshData->indices.data(), bufferSize);
-        stagingBuffer.bufferMemory.unmapMemory();
-
-        indexBuffer = createBuffer(
-            bufferSize, 
-            vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, 
-            vk::MemoryPropertyFlagBits::eDeviceLocal
-        );
-
-        copyBuffer(indexBuffer.buffer, stagingBuffer.buffer, bufferSize);
-        indexBuffer.count = static_cast<uint32_t>(meshData->indices.size());
-    }
-
-    void copyBuffer(const vk::raii::Buffer& dstBuffer, const vk::raii::Buffer& srcBuffer, vk::DeviceSize size)
-    {
-        vk::CommandBufferAllocateInfo allocInfo{ 
-            .commandPool = vulkanContext.commandPool, 
-            .level = vk::CommandBufferLevel::ePrimary,
-            .commandBufferCount = 1
-        };
-        vk::raii::CommandBuffer commandCopyBuffer = std::move(vulkanContext.device.allocateCommandBuffers(allocInfo).front());
-        commandCopyBuffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
-        commandCopyBuffer.copyBuffer(*srcBuffer, *dstBuffer, vk::BufferCopy{0, 0, size});
-        commandCopyBuffer.end();
-
-        vulkanContext.queue.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &*commandCopyBuffer}, nullptr);
-        vulkanContext.queue.waitIdle();
-    }
-
 };

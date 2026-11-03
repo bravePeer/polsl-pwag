@@ -10,16 +10,16 @@ public:
     : fun(nullptr)
     { }
 
-    ComponentAny(std::function<void(float)> fun)
+    ComponentAny(const std::function<void(ComponentAny*, float)>& fun)
     : fun(fun)
     { }
 
 protected:
     void update(float deltaTime) override
     {
-        fun(deltaTime);
+        fun(this, deltaTime);
     }
 
 private:
-    std::function<void(float)> fun;
+    std::function<void(ComponentAny*, float)> fun;
 };

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include "resource/resource.hpp"
 #include "vulkan_engine/vulkan_context.hpp"
+#include "resource/resource.hpp"
 
 class ResourceManager;
 
@@ -51,6 +52,11 @@ private:
     ResourceManager* resourcesManager;
 };
 
+/// @brief 
+/// @details Multi stage load
+/// 1. Preload add verticies and indiecies to buffer to load - calculate max size
+/// 2. Create one Vertex buffer for all meshes using offsets
+/// 3. Create one Index buffer for all meshes using offsets
 class ResourceManager
 {
 public:
@@ -179,6 +185,58 @@ public:
         refCounts.clear();
     }
 
+    void loadToGpu()
+    {
+        auto sizes = getSizes();
+        if(sizes.first == 0 || sizes.second == 0)
+        {
+            return;
+        }
+        createVertexBuffer(sizes.first);
+        createIndexBuffer(sizes.second);
+
+        // Unload from CPU
+        auto meshes = resources.find(std::type_index(typeid(ResourceMesh)));
+        if(meshes == resources.end())
+        { /// If no mesh resource then nothing to do
+            return;
+        }
+        vk::DeviceSize offset = 0;
+        for(auto& it : meshes->second)
+        {
+            it.second->unload();
+        }
+    }
+
+
+    VulkanBuffer& getVertexBuffer()
+    {
+        return vertexBuffer;
+    }
+
+    VulkanBuffer& getIndexBuffer()
+    {
+        return indexBuffer;
+    }
+
+    std::vector<ResourceMesh*> getMeshes()
+    {
+        std::vector<ResourceMesh*> ret;
+        auto itm = resources.find(std::type_index(typeid(ResourceMesh)));
+        if(itm == resources.end())
+        { /// If no mesh resource then nothing to do
+            return ret;
+        }
+
+        for(auto& it : itm->second)
+        {
+            auto mesh = static_cast<ResourceMesh*>(it.second.get());
+            ret.push_back(mesh);
+        }
+
+        return ret;
+    }
+
 private:
     VulkanContext vulkanContext;
     std::unordered_map<std::type_index, std::unordered_map<std::string, std::shared_ptr<Resource>>> resources;
@@ -189,6 +247,173 @@ private:
         uint32_t refCount = 0;
     };
     std::unordered_map<std::type_index, std::unordered_map<std::string, ResourceData>> refCounts;
+
+    /// Resource GPU storage
+    VulkanBuffer vertexBuffer;
+    VulkanBuffer indexBuffer;
+
+
+    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+    {
+        vk::PhysicalDeviceMemoryProperties memProperties = vulkanContext.physicalDevice.getMemoryProperties();
+
+        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+        {
+            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+            {
+                return i;
+            }
+        }
+
+        throw std::runtime_error("Failed to find suitable memory type!");
+    }
+
+    VulkanBuffer createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
+    {
+        VulkanBuffer buffer;
+
+        vk::BufferCreateInfo bufferInfo{
+            .size = size, 
+            .usage = usage, 
+            .sharingMode = vk::SharingMode::eExclusive
+        };
+        buffer.buffer = vk::raii::Buffer(vulkanContext.device, bufferInfo);
+
+        vk::MemoryRequirements memRequirements = buffer.buffer.getMemoryRequirements();
+        vk::MemoryAllocateInfo allocInfo{
+            .allocationSize = memRequirements.size,
+            .memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties)
+        };
+        buffer.bufferMemory = vk::raii::DeviceMemory(vulkanContext.device, allocInfo);
+        buffer.buffer.bindMemory(*buffer.bufferMemory, 0);
+        buffer.offset = 0;
+
+        return std::move(buffer);
+    }
+
+    void copyBuffer(const vk::raii::Buffer& dstBuffer, const vk::raii::Buffer& srcBuffer, vk::DeviceSize size)
+    {
+        vk::CommandBufferAllocateInfo allocInfo{ 
+            .commandPool = vulkanContext.commandPool, 
+            .level = vk::CommandBufferLevel::ePrimary,
+            .commandBufferCount = 1
+        };
+        vk::raii::CommandBuffer commandCopyBuffer = std::move(vulkanContext.device.allocateCommandBuffers(allocInfo).front());
+        commandCopyBuffer.begin({.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+        commandCopyBuffer.copyBuffer(*srcBuffer, *dstBuffer, vk::BufferCopy{0, 0, size});
+        commandCopyBuffer.end();
+
+        vulkanContext.queue.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &*commandCopyBuffer}, nullptr);
+        vulkanContext.queue.waitIdle();
+    }
+
+    
+
+    /// @brief Stage 0. Calculate sizes
+    /// @return sizes of all verticies and indicies as pair<ver, ind>
+    std::pair<vk::DeviceSize, vk::DeviceSize> getSizes()
+    {
+        vk::DeviceSize verticiesSize = 0;
+        vk::DeviceSize indiciesSize = 0;
+
+        auto itm = resources.find(std::type_index(typeid(ResourceMesh)));
+        if(itm == resources.end())
+        { /// If no mesh resource then nothing to do
+            return {0, 0};
+        }
+
+        for(auto& it : itm->second)
+        {
+            auto mesh = static_cast<ResourceMesh*>(it.second.get());
+            auto& meshData = mesh->getMeshData();
+            verticiesSize += meshData->getVerticesSize();
+            indiciesSize += meshData->getIndicesSize();
+        }
+
+        return {verticiesSize, indiciesSize};
+    }
+
+    /// Stage 1. Create vertex buffer
+    void createVertexBuffer(vk::DeviceSize bufferSize)
+    {
+        auto stagingBuffer = createBuffer(
+            bufferSize, 
+            vk::BufferUsageFlagBits::eTransferSrc, 
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+        );
+
+        void *dataStaging = stagingBuffer.bufferMemory.mapMemory(0, bufferSize);
+        
+        auto meshes = resources.find(std::type_index(typeid(ResourceMesh)));
+        if(meshes == resources.end())
+        { /// If no mesh resource then nothing to do
+            return;
+        }
+
+        vk::DeviceSize offset = 0;
+        for(auto& it : meshes->second)
+        {
+            auto mesh = static_cast<ResourceMesh*>(it.second.get());
+            auto& vertices = mesh->getMeshData()->vertices;
+            auto verticesSize = mesh->getMeshData()->getVerticesSize();
+            memcpy(dataStaging + offset, vertices.data(), verticesSize);
+
+            mesh->setVerticesLocation(offset, verticesSize);
+            offset += verticesSize;
+        }
+        
+        stagingBuffer.bufferMemory.unmapMemory();
+
+        vertexBuffer = createBuffer(
+            bufferSize, 
+            vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst, 
+            vk::MemoryPropertyFlagBits::eDeviceLocal
+        );
+
+        copyBuffer(vertexBuffer.buffer, stagingBuffer.buffer, bufferSize);
+        vertexBuffer.count = static_cast<uint32_t>(offset);
+    }
+
+    /// Stage 2. Create index buffer
+    void createIndexBuffer(vk::DeviceSize bufferSize)
+    {
+        auto stagingBuffer = createBuffer(
+            bufferSize, 
+            vk::BufferUsageFlagBits::eTransferSrc, 
+            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+        );
+
+        void* dataStaging = stagingBuffer.bufferMemory.mapMemory(0, bufferSize);
+
+        auto meshes = resources.find(std::type_index(typeid(ResourceMesh)));
+        if(meshes == resources.end())
+        { /// If no mesh resource then nothing to do
+            return;
+        }
+
+        vk::DeviceSize offset = 0;
+        for(auto& it : meshes->second)
+        {
+            auto mesh = static_cast<ResourceMesh*>(it.second.get());
+            auto& indices = mesh->getMeshData()->indices;
+            auto indicesSize = mesh->getMeshData()->getIndicesSize();
+            memcpy(dataStaging + offset, indices.data(), indicesSize);
+
+            mesh->setIndicesLocation(offset, indicesSize);
+            offset += indicesSize;
+        }
+        
+        stagingBuffer.bufferMemory.unmapMemory();
+
+        indexBuffer = createBuffer(
+            bufferSize, 
+            vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst, 
+            vk::MemoryPropertyFlagBits::eDeviceLocal
+        );
+
+        copyBuffer(indexBuffer.buffer, stagingBuffer.buffer, bufferSize);
+        indexBuffer.count = static_cast<uint32_t>(offset);
+    }
 };
 
 template <typename T>
@@ -198,7 +423,7 @@ T* ResourceHandle<T>::get() const
     {
         return nullptr;
     }
-    // return resourcesManager
+
     return resourcesManager->getResource<T>(nameId);
 }
 

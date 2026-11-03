@@ -25,6 +25,7 @@
 
 #include "vulkan_engine/culling.hpp"
 #include "vulkan_engine/buffer_creator.hpp"
+#include "resource/resource_manager.hpp"
 
 struct WindowProvider
 {
@@ -50,7 +51,7 @@ public:
         createLogicalDevice();
         createSwapChain();
         createImageViews();
-        vkResourceManager.emplace(device, physicalDevice, queue, commandPool);
+        // vkResourceManager.emplace(device, physicalDevice, queue, commandPool);
         // createDescriptorSetLayout();
         createCommandPool();
   
@@ -119,6 +120,11 @@ public:
         return *vkResourceManager;
     }
 
+    void setResourceManager(ResourceManager* rm)
+    {
+        resourceManager = rm;
+    }
+
 private:
     WindowProvider& windowProvider;
     // GLFWwindow* window = nullptr;
@@ -158,6 +164,7 @@ private:
     bool framebufferResized = false;
 
     std::optional<VulkanResourceManager> vkResourceManager;
+    ResourceManager* resourceManager = nullptr;
 
     void createSyncObjects()
     {
@@ -815,10 +822,13 @@ private:
         // commandBuffer.setViewport(0, vk::Viewport(0, 0, (float)swapChainExtent.width, (float)swapChainExtent.height, 0, 1));
         commandBuffer.setScissor(0, vk::Rect2D({0, 0}, swapChainExtent));
         
+        
+        auto& vetices = resourceManager->getVertexBuffer();
+        auto& indices = resourceManager->getIndexBuffer();
+        auto meshes = resourceManager->getMeshes();
 
-        auto& mesh = vkResourceManager->getVkMesh();
-        commandBuffer.bindVertexBuffers(0, *mesh.vertexBuffer.buffer, {0});
-        commandBuffer.bindIndexBuffer(*mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
+        commandBuffer.bindVertexBuffers(0, *vetices.buffer, {0});
+        commandBuffer.bindIndexBuffer(*indices.buffer, 0, vk::IndexType::eUint32);
 
         for(size_t i = 0; i < buffCreator->getSize(); i++)
         {
@@ -830,7 +840,7 @@ private:
                 *buffCreator->getDescriptorSets(), 
                 offset
             );
-            commandBuffer.drawIndexed(mesh.size, 1, 0, 0, 0);
+            commandBuffer.drawIndexed(meshes[0]->getMeshLocation().indexCount, 1, 0, 0, 0);
         }
 
 

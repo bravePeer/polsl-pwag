@@ -3,13 +3,9 @@
 #include <cstdint>
 #include <glm/glm.hpp>
 #include "vulkan_engine/vulkan_config.hpp"
+#include "resource/resource_utils.hpp"
 
-struct VulkanBuffer
-{
-    vk::raii::DeviceMemory bufferMemory = nullptr;
-    vk::raii::Buffer buffer = nullptr;
-    void* mapped = nullptr;
-};
+
 
 struct VulkanMesh
 {

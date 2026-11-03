@@ -7,6 +7,13 @@ extern vk::Device getDevice();
 class Resource
 {
 public:
+    enum class State
+    {
+        NotLoaded,
+        Loaded,
+        Released,
+    };
+
     explicit Resource(const std::string& nameId, VulkanContext& vulkanContext)
     : nameId(nameId), vulkanContext(vulkanContext)
     { }
@@ -15,20 +22,35 @@ public:
     { }
 
     bool load()
-    { 
-        loaded = doLoad();
-        return loaded;
+    {
+        if(state != State::NotLoaded)
+        {
+            return false;
+        }
+
+        if(doLoad())
+        {
+            state = State::Loaded;
+            return true;
+        }
+
+        return false;
     }
 
     void unload()
-    { 
+    {
+        if(state != State::Loaded)
+        {
+            return;
+        }
+        
         doUnload();
-        loaded = false;
+        state = State::Released;
     }
 
     bool isLoaded() const
     {
-        return loaded;
+        return state == State::Loaded;
     }
 
     std::string getNameId() const
@@ -41,7 +63,7 @@ protected:
 
 private:
     std::string nameId;
-    bool loaded = false;
+    State state = State::NotLoaded;
 
     virtual bool doLoad() = 0;
 

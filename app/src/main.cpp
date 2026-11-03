@@ -6,6 +6,7 @@ int main()
     try
     {
         App app(kWidth, kHeight, "Vulkan App");
+        app.init();
         app.run();
     }
     catch(const std::exception& e)

@@ -54,26 +54,24 @@ public:
             engine->setWindowResized(true);
         }, &vkEngine);
 
+        vkEngine.setResourceManager(&resourceManager);
+    }
+    
+    App(const App&) = delete;
 
-        objects.push_back(createRectangle());
-        objects.push_back(createRectangle());
-        objects.push_back(createRectangle());
+    ~App() noexcept
+    { }
 
-        objects[1].transform.move({0.5f, 0.f, 0.f});
-        objects[2].transform.move({-0.5f, 0.5f, 0.f});
-        objects[1].transform.scale.x = 0.5f;
-        objects[1].transform.scale.y = 0.5f;
-        objects[1].transform.scale.z = 0.5f;
-
-        vkEngine.getResourceManager().loadObject(objects[1].mesh);
-        vkEngine.getResourceManager().getVkObject().setModelTransform(objects[1].transform.getModelMatrix());
-
+    void init()
+    {
+        /// Load and prepare simple scene
         ResourceMesh::ResourceMeshData data{
             .vertices = triangleVertices,
             .indices = triangleIndices
         };
         resourceManager.load<ResourceMesh>("test2", std::make_unique<ResourceMesh::ResourceMeshData>(data));
         auto rMesh = resourceManager.getResource<ResourceMesh>("test2");
+        resourceManager.loadToGpu();
 
         auto& camera = scene.createEntity("main_camera");
         camera.addComponent<ComponentCamera>();
@@ -86,10 +84,13 @@ public:
         spammer2.addComponent<ComponentSpamer>(2, "Spam2");
 
         auto& mesh1 = scene.createEntity();
-        mesh1.addComponent<ComponentMesh>();
-        mesh1.getComponent<ComponentMesh>()->setMesh(rMesh);
-        mesh1.addComponent<ComponentTransform>();
+        mesh1.addComponent<ComponentMesh>()->setMesh(rMesh);
         mesh1.addComponent<ComponentTransform>()->setPosition({0.f, -0.5f, -5.5f});
+        mesh1.addComponent<ComponentAny>([](ComponentAny* comp, float deltaTime){
+            auto transform = comp->getOwner()->getComponent<ComponentTransform>();
+            const float angle = 3.14f * deltaTime;
+            transform->rotate(angle, glm::vec3(0.f, 0.f, 1.f));
+        });
 
         auto& mesh2 = scene.createEntity();
         mesh2.addComponent<ComponentMesh>();
@@ -100,19 +101,14 @@ public:
         buffCreator.createBuffers();
         buffCreator.createDescriptorSet();
         vkEngine.init();
-
+        
         /// Add Entity to 
     }
-    
-    App(const App&) = delete;
-
-    ~App() noexcept
-    { }
 
     void run()
     {
         frameLastTime = std::chrono::steady_clock::now();
-        while (!window.shouldClose() || !shouldExit)
+        while (!window.shouldClose() && !shouldExit)
         {
             updateTime();
 

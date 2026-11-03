@@ -24,6 +24,12 @@ public:
         dirty = true;
     }
 
+    void rotate(float angle, glm::vec3 axis)
+    {
+        rotation = glm::rotate(rotation, angle, axis);
+        dirty = true;
+    }
+
     glm::vec3 getPosition()
     {
         return position;
