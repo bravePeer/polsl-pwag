@@ -24,7 +24,6 @@ public:
     {
         if(state != State::Destroyed)
         {
-            onDestroy();
             state = State::Destroyed;
         }
     }

@@ -8,17 +8,6 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 
-struct UboSet0
-{
-    glm::mat4 view;
-    glm::mat4 proj;
-};
-
-struct UboSet1
-{
-    glm::mat4 transform;
-};
-
 /// @brief Create VMA (Vulkan Memory Allocator)
 class BufferCreator
 {
@@ -121,6 +110,8 @@ public:
             .pBufferInfo     = &bufferInfo
         };
         vkContext.device.updateDescriptorSets(descriptorWrite, {});
+
+
     }
 
     void createBuffers()
@@ -165,13 +156,13 @@ public:
         std::memcpy(static_cast<uint8_t*>(buffer.mapped) + offset(frame, obj), &data, sizeof(data));
     }
 
-    void set(glm::mat4 tview, glm::mat4 tproj)
+    void set(glm::mat4 const& tview, glm::mat4 tproj)
     {
         view = tview;
         proj = tproj;
     }
 
-    void updateUbo()
+    void updateUbo(uint32_t frame)
     {
         for(size_t i = 0; i < components.size(); i++)
         {
@@ -180,7 +171,7 @@ public:
                 .view = view,
                 .proj = proj
             };
-            update(0, i, ubo);
+            update(frame, i, ubo);
         }
     }
 
@@ -199,6 +190,13 @@ public:
         return descriptorSetLayout;
     }
 
+    void bindUboOffsets()
+    {
+        for(size_t i = 0; i < components.size(); i++)
+        {
+            components[i].mesh->setOffests(i * stride * kMaxFramesInFlight);
+        }
+    }
 private:
     struct ObjSomeStruct
     {

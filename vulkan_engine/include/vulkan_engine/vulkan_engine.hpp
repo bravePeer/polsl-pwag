@@ -19,13 +19,14 @@
 #include "vertex/vertex_data.hpp"
 
 #include "vulkan_engine/vulkan_config.hpp"
-#include "vulkan_resource_manager.hpp"
 #include "vulkan_engine/vulkan_shader_loader.hpp"
 #include "vulkan_engine/vulkan_context.hpp"
 
 #include "vulkan_engine/culling.hpp"
 #include "vulkan_engine/buffer_creator.hpp"
 #include "resource/resource_manager.hpp"
+
+#include "vulkan_engine/renderer.hpp"
 
 struct WindowProvider
 {
@@ -107,17 +108,17 @@ public:
         framebufferResized = resized;
     }
 
+    void setRenderer(Renderer* r)
+    {
+        renderer = r;
+    }
+
     void recreateSwapChainPub()
     {
         device.waitIdle();
         cleanupSwapChain();
         createSwapChain();
         createImageViews();
-    }
-
-    VulkanResourceManager& getResourceManager()
-    {
-        return *vkResourceManager;
     }
 
     void setResourceManager(ResourceManager* rm)
@@ -163,7 +164,6 @@ private:
 
     bool framebufferResized = false;
 
-    std::optional<VulkanResourceManager> vkResourceManager;
     ResourceManager* resourceManager = nullptr;
 
     void createSyncObjects()
@@ -202,11 +202,11 @@ private:
         }
 
 		device.resetFences(*drawFence);
-        updateUniformBuffer2(0);
+        updateUniformBuffer(0);
         
-        recordCommandBuffer2(imageIndex);
+        recordCommandBuffer(imageIndex);
 
-        vk::PipelineStageFlags waitDestinationStageMask( vk::PipelineStageFlagBits::eColorAttachmentOutput );
+        vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
         const vk::SubmitInfo   submitInfo{
             .waitSemaphoreCount   = 1,
             .pWaitSemaphores      = &*presentCompleteSemaphore,
@@ -636,76 +636,7 @@ private:
     }
 
     const uint32_t frameIndex = 0;
-    void recordCommandBuffer(uint32_t imageIndex)
-    {
-        commandBuffer.begin({});
-
-        // Transition the image layout for rendering
-        transition_image_layout(
-            imageIndex,
-            vk::ImageLayout::eUndefined,
-            vk::ImageLayout::eColorAttachmentOptimal,
-            {},
-            vk::AccessFlagBits2::eColorAttachmentWrite,
-            vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-            vk::PipelineStageFlagBits2::eColorAttachmentOutput
-        );
-
-        // Set up the color attachment
-        vk::ClearValue clearColor = vk::ClearColorValue(0.0f, 0.0f, 0.0f, 1.0f);
-        vk::RenderingAttachmentInfo attachmentInfo = {
-                .imageView   = swapChainImageViews[imageIndex],
-                .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
-                .loadOp      = vk::AttachmentLoadOp::eClear,
-                .storeOp     = vk::AttachmentStoreOp::eStore,
-                .clearValue  = clearColor};
-
-        // Set up the rendering info
-        vk::RenderingInfo renderingInfo = {
-                .renderArea           = {.offset = {0, 0}, .extent = swapChainExtent},
-                .layerCount           = 1,
-                .colorAttachmentCount = 1,
-                .pColorAttachments    = &attachmentInfo};
-
-        // Begin rendering
-        commandBuffer.beginRendering(renderingInfo);
-
-        // Rendering commands will go here
-        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline);
-        commandBuffer.setViewport(0, vk::Viewport(0.0f, static_cast<float>(swapChainExtent.height), static_cast<float>(swapChainExtent.width), -static_cast<float>(swapChainExtent.height), 0.0f, 1.0f));
-        // commandBuffer.setViewport(0, vk::Viewport(0, 0, (float)swapChainExtent.width, (float)swapChainExtent.height, 0, 1));
-        commandBuffer.setScissor(0, vk::Rect2D({0, 0}, swapChainExtent));
-        
-
-        auto& mesh = vkResourceManager->getVkMesh();
-        commandBuffer.bindVertexBuffers(0, *mesh.vertexBuffer.buffer, {0});
-        commandBuffer.bindIndexBuffer(*mesh.indexBuffer.buffer, 0, vk::IndexType::eUint32);
-        commandBuffer.bindDescriptorSets(
-            vk::PipelineBindPoint::eGraphics,
-            pipelineLayout, 0, 
-            *vkResourceManager->getDescriptorSets()[frameIndex], 
-            nullptr
-        );
-        commandBuffer.drawIndexed(mesh.size, 1, 0, 0, 0);
-
-
-        // End rendering
-        commandBuffer.endRendering();
-
-        // Transition the image layout for presentation
-        transition_image_layout(
-            imageIndex,
-            vk::ImageLayout::eColorAttachmentOptimal,
-            vk::ImageLayout::ePresentSrcKHR,
-            vk::AccessFlagBits2::eColorAttachmentWrite,
-            {},
-            vk::PipelineStageFlagBits2::eColorAttachmentOutput,
-            vk::PipelineStageFlagBits2::eBottomOfPipe
-        );
-
-        commandBuffer.end();
-    }
-
+   
     void createCommandPool()
     {
         vk::CommandPoolCreateInfo poolInfo{
@@ -757,32 +688,15 @@ private:
         commandBuffer.pipelineBarrier2(dependency_info);
     }
 
+    BufferCreator* buffCreator = nullptr;
+    Renderer* renderer = nullptr;
+
     void updateUniformBuffer(uint32_t currentImage)
     {
-        static auto startTime = std::chrono::high_resolution_clock::now();
-
-        auto currentTime = std::chrono::high_resolution_clock::now();
-        float time       = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-        UniformBufferObject ubo{};
-        ubo.model = vkResourceManager->getVkObject().model;
-        ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(swapChainExtent.width) / static_cast<float>(swapChainExtent.height), 0.1f, 10.0f);
-    
-        memcpy(vkResourceManager->getVkObject().uniformBuffersMapped[currentImage],
-            &ubo,
-            sizeof(UniformBufferObject)
-        );
+        buffCreator->updateUbo(currentImage);
     }
 
-    BufferCreator* buffCreator = nullptr;
-
-    void updateUniformBuffer2(uint32_t currentImage)
-    {
-        buffCreator->updateUbo();
-    }
-
-    void recordCommandBuffer2(uint32_t imageIndex)
+    void recordCommandBuffer(uint32_t imageIndex)
     {
         commandBuffer.begin({});
 
@@ -823,26 +737,8 @@ private:
         commandBuffer.setScissor(0, vk::Rect2D({0, 0}, swapChainExtent));
         
         
-        auto& vetices = resourceManager->getVertexBuffer();
-        auto& indices = resourceManager->getIndexBuffer();
-        auto meshes = resourceManager->getMeshes();
-
-        commandBuffer.bindVertexBuffers(0, *vetices.buffer, {0});
-        commandBuffer.bindIndexBuffer(*indices.buffer, 0, vk::IndexType::eUint32);
-
-        for(size_t i = 0; i < buffCreator->getSize(); i++)
-        {
-            uint32_t offset = buffCreator->offset(frameIndex, i);
-            commandBuffer.bindDescriptorSets(
-                vk::PipelineBindPoint::eGraphics,
-                pipelineLayout, 
-                0,
-                *buffCreator->getDescriptorSets(), 
-                offset
-            );
-            commandBuffer.drawIndexed(meshes[0]->getMeshLocation().indexCount, 1, 0, 0, 0);
-        }
-
+        /// @todo Add renderer
+        renderer->renderMeshes(commandBuffer, pipelineLayout);
 
         // End rendering
         commandBuffer.endRendering();

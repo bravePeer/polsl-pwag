@@ -14,7 +14,7 @@ public:
     {
         if(!newCamera)
         {
-            throw new std::runtime_error("Camera can not be null!");
+            throw std::runtime_error("Camera can not be null!");
         }
 
         camera = newCamera;

@@ -22,6 +22,7 @@
 
 #include "resource/resource_manager.hpp"
 #include "resource/resource_mesh.hpp"
+#include "resource/resource_models.hpp"
 
 #include "component/scene.hpp"
 
@@ -46,7 +47,8 @@ public:
       }},
       vkEngine(windowProvider),
       resourceManager(vkEngine.getContext()),
-      buffCreator(vkEngine.getContext())
+      buffCreator(vkEngine.getContext()),
+      renderer(vkEngine.getContext())
     {
         vkEngine.setBufferCreator(&buffCreator);
         window.setWindowResizeCb([](GLFWwindow* window, int width, int height){
@@ -60,49 +62,55 @@ public:
     App(const App&) = delete;
 
     ~App() noexcept
-    { }
+    { 
+        vkEngine.getContext().device.waitIdle();
+    }
 
     void init()
     {
-        /// Load and prepare simple scene
-        ResourceMesh::ResourceMeshData data{
-            .vertices = triangleVertices,
-            .indices = triangleIndices
-        };
-        resourceManager.load<ResourceMesh>("test2", std::make_unique<ResourceMesh::ResourceMeshData>(data));
-        auto rMesh = resourceManager.getResource<ResourceMesh>("test2");
+        resourceManager.load<ResourceMesh>("cube", 
+            std::make_unique<ResourceMesh::ResourceMeshData>(
+                createCube(.5f,.5f,.5f)
+        ));
+        auto cubeMesh = resourceManager.getResource<ResourceMesh>("cube");
+        resourceManager.load<ResourceMesh>("cone", 
+            std::make_unique<ResourceMesh::ResourceMeshData>(
+                createCone(.3f, .4f)
+        ));
+        auto coneMesh = resourceManager.getResource<ResourceMesh>("cone");
         resourceManager.loadToGpu();
 
         auto& camera = scene.createEntity("main_camera");
         camera.addComponent<ComponentCamera>();
         camera.addComponent<ComponentTransform>();
 
-        auto& spammer = scene.createEntity();
-        spammer.addComponent<ComponentSpamer>(1, "Spam");
-
-        auto& spammer2 = scene.createEntity();
-        spammer2.addComponent<ComponentSpamer>(2, "Spam2");
-
         auto& mesh1 = scene.createEntity();
-        mesh1.addComponent<ComponentMesh>()->setMesh(rMesh);
+        mesh1.addComponent<ComponentMesh>()->setMesh(cubeMesh);
         mesh1.addComponent<ComponentTransform>()->setPosition({0.f, -0.5f, -5.5f});
         mesh1.addComponent<ComponentAny>([](ComponentAny* comp, float deltaTime){
             auto transform = comp->getOwner()->getComponent<ComponentTransform>();
-            const float angle = 3.14f * deltaTime;
-            transform->rotate(angle, glm::vec3(0.f, 0.f, 1.f));
+            const float angle = 3.14f * deltaTime / 2;
+            transform->rotate(angle, glm::vec3(0.f, 1.f, 1.f));
         });
 
         auto& mesh2 = scene.createEntity();
-        mesh2.addComponent<ComponentMesh>();
-        mesh2.getComponent<ComponentMesh>()->setMesh(rMesh);
+        mesh2.addComponent<ComponentMesh>()->setMesh(cubeMesh);
         mesh2.addComponent<ComponentTransform>()->setPosition({0.f, 0.f, -10.5f});
+
+        auto& mesh3 = scene.createEntity();
+        mesh3.addComponent<ComponentMesh>()->setMesh(coneMesh);
+        mesh3.addComponent<ComponentTransform>()->setPosition({-.4f, 0.f, -10.5f});
 
         buffCreator.addToGenerate(scene.getEntities());
         buffCreator.createBuffers();
         buffCreator.createDescriptorSet();
+        buffCreator.bindUboOffsets();
         vkEngine.init();
+        vkEngine.setRenderer(&renderer);
         
-        /// Add Entity to 
+        renderer.setBuffCreator(&buffCreator);
+        renderer.setResourceManager(&resourceManager);
+
     }
 
     void run()
@@ -132,10 +140,11 @@ private:
     VulkanEngine vkEngine;
     ResourceManager resourceManager;
     SceneCulling culling;
+    BufferCreator buffCreator;
+    Renderer renderer;
 
     Scene scene;
 
-    BufferCreator buffCreator;
 
     std::vector<Object> objects;
 
@@ -170,6 +179,7 @@ private:
     void render()
     {
         std::vector<Entity*> visibleEntities = culling.getVisibleEntities(scene);
+        renderer.addEntities(visibleEntities);
 
         // Draw frame
         if(vkEngine.drawFramePub())

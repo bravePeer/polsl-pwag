@@ -397,7 +397,7 @@ private:
             auto mesh = static_cast<ResourceMesh*>(it.second.get());
             auto& indices = mesh->getMeshData()->indices;
             auto indicesSize = mesh->getMeshData()->getIndicesSize();
-            memcpy(dataStaging + offset, indices.data(), indicesSize);
+            memcpy(static_cast<uint8_t*>(dataStaging) + offset, indices.data(), indicesSize);
 
             mesh->setIndicesLocation(offset, indicesSize);
             offset += indicesSize;

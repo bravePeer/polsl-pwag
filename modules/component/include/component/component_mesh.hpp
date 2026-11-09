@@ -15,11 +15,17 @@ public:
         return mesh;
     }
 
-protected:
+    uint32_t getUboOffests()
+    {
+        return uboOffset;
+    }
+    
     void setOffests(uint32_t uboOffsett)
     {
         uboOffset = uboOffsett;
     }
+protected:
+    
 
 private:
     ResourceMesh* mesh = nullptr;
