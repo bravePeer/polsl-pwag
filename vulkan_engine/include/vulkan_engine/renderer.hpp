@@ -62,7 +62,6 @@ public:
 
             for(auto& obj : meshes.second)
             {
-                // uint32_t offset = buffCreator->offset(0, i);
                 const uint32_t offset = obj->getUboOffests();
                 commandBuffer.bindDescriptorSets(
                     vk::PipelineBindPoint::eGraphics,
@@ -72,7 +71,13 @@ public:
                     offset
                 );
                 
-                commandBuffer.drawIndexed(meshLocation.indexCount, 1, static_cast<uint32_t>(meshLocation.indexOffset / sizeof(uint32_t)), 0, meshLocation.vertexOffset / sizeof(Vertex));
+                commandBuffer.drawIndexed(
+                    meshLocation.indicesCount, 
+                    1, 
+                    meshLocation.indexOffset, 
+                    meshLocation.vertexOffset, 
+                    0
+                );
 
             }
         }

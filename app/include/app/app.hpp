@@ -7,7 +7,6 @@
 #include "app/app_config.hpp"
 #include "app/window.hpp"
 #include "vulkan_engine/vulkan_engine.hpp"
-#include "vulkan_engine/vulkan_resource_manager.hpp"
 #include "vulkan_engine/buffer_creator.hpp"
 
 #include "vertex/object.hpp"
@@ -51,7 +50,7 @@ public:
       renderer(vkEngine.getContext())
     {
         vkEngine.setBufferCreator(&buffCreator);
-        window.setWindowResizeCb([](GLFWwindow* window, int width, int height){
+        window.setWindowResizeCb([](GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height){
             auto engine = reinterpret_cast<VulkanEngine*>(glfwGetWindowUserPointer(window));
             engine->setWindowResized(true);
         }, &vkEngine);
@@ -89,7 +88,7 @@ public:
         mesh1.addComponent<ComponentTransform>()->setPosition({0.f, -0.5f, -5.5f});
         mesh1.addComponent<ComponentAny>([](ComponentAny* comp, float deltaTime){
             auto transform = comp->getOwner()->getComponent<ComponentTransform>();
-            const float angle = 3.14f * deltaTime / 2;
+            const float angle = 3.141f * deltaTime / 2;
             transform->rotate(angle, glm::vec3(0.f, 1.f, 1.f));
         });
 
@@ -110,7 +109,6 @@ public:
         
         renderer.setBuffCreator(&buffCreator);
         renderer.setResourceManager(&resourceManager);
-
     }
 
     void run()

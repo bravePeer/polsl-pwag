@@ -16,7 +16,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "input/input.hpp"
-#include "vertex/vertex_data.hpp"
 
 #include "vulkan_engine/vulkan_config.hpp"
 #include "vulkan_engine/vulkan_shader_loader.hpp"

@@ -15,11 +15,10 @@ public:
     };
 
     explicit Resource(const std::string& nameId, VulkanContext& vulkanContext)
-    : nameId(nameId), vulkanContext(vulkanContext)
+    : vulkanContext(vulkanContext), nameId(nameId)
     { }
 
-    virtual ~Resource()
-    { }
+    virtual ~Resource() = default;
 
     bool load()
     {

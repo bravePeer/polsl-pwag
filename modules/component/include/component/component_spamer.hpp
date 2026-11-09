@@ -10,12 +10,12 @@ public:
     : spamPeriod(1.f)
     { }
 
-    ComponentSpamer(float spamPeriod, std::string text)
+    ComponentSpamer(float spamPeriod, const std::string& text)
     : spamPeriod(spamPeriod), textToPrint(text)
     { }
 
 protected:
-    void update(float deltaTime) override
+    void update([[maybe_unused]] float deltaTime) override
     {
         // To też będzie dobrze ale chyba lepiej by było po prostu dodawać deltaTime
         auto timeNow = std::chrono::steady_clock::now();

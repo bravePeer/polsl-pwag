@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 
 # Add option to enable/disable C++ 20 module
-option(ENABLE_CPP20_MODULE "Enable C++ 20 module support for Vulkan" OFF)
+option(ENABLE_CPP20_MODULE "Enable C++ 20 module support for Vulkan" ON)
 
 # vulkan.cppm uses `import std;`, which is still experimental in CMake 4.0
 # (the UUID is specific to the CMake version and must be set before project())

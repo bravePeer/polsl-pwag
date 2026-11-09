@@ -342,7 +342,7 @@ private:
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
         );
 
-        void *dataStaging = stagingBuffer.bufferMemory.mapMemory(0, bufferSize);
+        auto dataStaging = static_cast<uint8_t*>(stagingBuffer.bufferMemory.mapMemory(0, bufferSize));
         
         auto meshes = resources.find(std::type_index(typeid(ResourceMesh)));
         if(meshes == resources.end())
@@ -350,16 +350,22 @@ private:
             return;
         }
 
-        vk::DeviceSize offset = 0;
+        vk::DeviceSize offsetBytes = 0;
         for(auto& it : meshes->second)
         {
             auto mesh = static_cast<ResourceMesh*>(it.second.get());
             auto& vertices = mesh->getMeshData()->vertices;
-            auto verticesSize = mesh->getMeshData()->getVerticesSize();
-            memcpy(dataStaging + offset, vertices.data(), verticesSize);
+            auto verticesSizeBytes = mesh->getMeshData()->getVerticesSize();
+            memcpy(dataStaging + offsetBytes, vertices.data(), verticesSizeBytes);
 
-            mesh->setVerticesLocation(offset, verticesSize);
-            offset += verticesSize;
+            mesh->setVerticesLocation(
+                offsetBytes, 
+                offsetBytes / sizeof(Vertex), 
+                sizeof(Vertex),
+                verticesSizeBytes,
+                verticesSizeBytes / sizeof(Vertex)
+            );
+            offsetBytes += verticesSizeBytes;
         }
         
         stagingBuffer.bufferMemory.unmapMemory();
@@ -371,7 +377,7 @@ private:
         );
 
         copyBuffer(vertexBuffer.buffer, stagingBuffer.buffer, bufferSize);
-        vertexBuffer.count = static_cast<uint32_t>(offset);
+        vertexBuffer.count = static_cast<uint32_t>(offsetBytes);
     }
 
     /// Stage 2. Create index buffer
@@ -383,7 +389,7 @@ private:
             vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
         );
 
-        void* dataStaging = stagingBuffer.bufferMemory.mapMemory(0, bufferSize);
+        auto dataStaging = static_cast<uint8_t*>(stagingBuffer.bufferMemory.mapMemory(0, bufferSize));
 
         auto meshes = resources.find(std::type_index(typeid(ResourceMesh)));
         if(meshes == resources.end())
@@ -391,16 +397,22 @@ private:
             return;
         }
 
-        vk::DeviceSize offset = 0;
+        vk::DeviceSize offsetBytes = 0;
         for(auto& it : meshes->second)
         {
             auto mesh = static_cast<ResourceMesh*>(it.second.get());
             auto& indices = mesh->getMeshData()->indices;
-            auto indicesSize = mesh->getMeshData()->getIndicesSize();
-            memcpy(static_cast<uint8_t*>(dataStaging) + offset, indices.data(), indicesSize);
+            auto indicesSizeBytes = mesh->getMeshData()->getIndicesSize();
+            memcpy(dataStaging + offsetBytes, indices.data(), indicesSizeBytes);
 
-            mesh->setIndicesLocation(offset, indicesSize);
-            offset += indicesSize;
+            mesh->setIndicesLocation(
+                offsetBytes,
+                offsetBytes / sizeof(uint32_t),
+                sizeof(uint32_t),
+                indicesSizeBytes,
+                indicesSizeBytes / sizeof(uint32_t)
+            );
+            offsetBytes += indicesSizeBytes;
         }
         
         stagingBuffer.bufferMemory.unmapMemory();
@@ -412,7 +424,7 @@ private:
         );
 
         copyBuffer(indexBuffer.buffer, stagingBuffer.buffer, bufferSize);
-        indexBuffer.count = static_cast<uint32_t>(offset);
+        indexBuffer.count = static_cast<uint32_t>(offsetBytes);
     }
 };
 

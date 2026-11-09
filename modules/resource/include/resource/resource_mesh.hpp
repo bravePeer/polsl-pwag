@@ -1,8 +1,9 @@
 #pragma once
 #include "resource/resource.hpp"
 #include "resource/resource_utils.hpp"
-#include <vulkan/vulkan_raii.hpp>
+// #include <vulkan/vulkan_raii.hpp>
 #include <cstdint>
+#include "vertex/vertex.hpp"
 
 class ResourceMesh : public Resource
 {
@@ -26,11 +27,17 @@ public:
 
     struct ResourceMeshLocation
     {
-        vk::DeviceSize vertexOffset;
-        vk::DeviceSize vertexSize;
-        vk::DeviceSize indexOffset;
-        vk::DeviceSize indexSize;
-        vk::DeviceSize indexCount;
+        uint64_t vertexOffsetBytes; // Offset in bytes
+        uint64_t vertexOffset;      // Offset of vertex objects is a number of objects
+        uint64_t vertexSize;        // Size of vertex objects in bytes
+        uint64_t verticesSize;        // Size of vertex objects in bytes
+        uint64_t verticesCount;       // Count of vertex objects
+
+        uint64_t indexOffsetBytes;  // Offset in bytes
+        uint64_t indexOffset;       // Offset is a number of objects
+        uint64_t indexSize;         // Size of one index object in bytes
+        uint64_t indicesSize;       // Size of index objects
+        uint64_t indicesCount;      // Count of index objects
     };
 
     explicit ResourceMesh(const std::string& nameId, VulkanContext& vulkanContext, std::unique_ptr<ResourceMeshData> meshData)
@@ -50,17 +57,22 @@ public:
         return meshLocation;
     }
 
-    void setVerticesLocation(vk::DeviceSize vertexOffset, vk::DeviceSize vertexSize)
+    void setVerticesLocation(uint64_t vertexOffsetBytes, uint64_t vertexOffset, uint64_t vertexSize, uint64_t verticesSize, uint64_t verticesCount)
     {
+        meshLocation.vertexOffsetBytes = vertexOffsetBytes;
         meshLocation.vertexOffset = vertexOffset;
         meshLocation.vertexSize = vertexSize;
+        meshLocation.verticesSize = verticesSize;
+        meshLocation.verticesCount = verticesCount;
     }
 
-    void setIndicesLocation(vk::DeviceSize indexOffset, vk::DeviceSize indexSize)
+    void setIndicesLocation(uint64_t indexOffsetBytes, uint64_t indexOffset, uint64_t indexSize, uint64_t indicesSize, uint64_t indicesCount)
     {
+        meshLocation.indexOffsetBytes = indexOffsetBytes;
         meshLocation.indexOffset = indexOffset;
         meshLocation.indexSize = indexSize;
-        meshLocation.indexCount = indexSize / sizeof(uint32_t);
+        meshLocation.indicesSize = indicesSize;
+        meshLocation.indicesCount = indicesCount;
     }
 
 protected:
