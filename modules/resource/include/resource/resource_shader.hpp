@@ -1,5 +1,6 @@
 #pragma once
 #include "resource/resource.hpp"
+#include <glm/glm.hpp>
 
 struct UboSet0
 {

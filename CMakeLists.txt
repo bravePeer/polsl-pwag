@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.29)
 
 # Add option to enable/disable C++ 20 module
-option(ENABLE_CPP20_MODULE "Enable C++ 20 module support for Vulkan" ON)
+option(ENABLE_CPP20_MODULE "Enable C++ 20 module support for Vulkan" OFF)
 
 # vulkan.cppm uses `import std;`, which is still experimental in CMake 4.0
 # (the UUID is specific to the CMake version and must be set before project())
@@ -33,6 +33,7 @@ add_subdirectory(modules)
 target_compile_definitions(vulkan_app PRIVATE
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
     VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
 )
 
 target_compile_options(vulkan_app PRIVATE
@@ -74,6 +75,11 @@ if(ENABLE_CPP20_MODULE)
     target_link_libraries(vulkan_app PRIVATE Vulkan::cppm)
 else()
     target_link_libraries(vulkan_app PRIVATE Vulkan::Vulkan)
+    target_compile_definitions(VulkanCppModule PUBLIC
+        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+        VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
+    )
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE vulkan_engine::vulkan_engine)

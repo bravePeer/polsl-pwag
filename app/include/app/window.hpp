@@ -50,17 +50,25 @@ public:
         return glfwWindowShouldClose(window);
     }
 
-    void waitIfMinimize()
+    /// @brief Checks frame buffer size and waits if is 0x0
+    /// @return true if frame buffer was 0x0 (minimized)
+    bool waitIfMinimize()
     {
         int width = 0;
         int height = 0;
-
+        
         glfwGetFramebufferSize(window, &width, &height);
+        if(width != 0 && height != 0)
+        {
+            return false;
+        }
+
         while ((width == 0 || height == 0) && !glfwWindowShouldClose(window))
         {
             glfwGetFramebufferSize(window, &width, &height);
             glfwWaitEvents();
         }
+        return true;
     }
 
     std::vector<const char*> getRequiredInstanceExtensions()

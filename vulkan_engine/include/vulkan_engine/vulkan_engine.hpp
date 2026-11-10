@@ -90,11 +90,65 @@ public:
         buffCreator = bf;
     }
 
-
-    /// @brief Temporary method during refactor
-    bool drawFramePub()
+    void drawFrame()
     {
-        return drawFrame();
+        auto fenceResult = device.waitForFences(*drawFence, vk::True, UINT64_MAX);
+		if (fenceResult != vk::Result::eSuccess)
+		{
+			throw std::runtime_error("failed to wait for fence!");
+		}
+
+        auto [result, imageIndex] = swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphore, nullptr);
+
+        if (result == vk::Result::eErrorOutOfDateKHR)
+        {
+            recreateSwapChain();
+            return;
+        }
+        if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+        {
+            assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
+            throw std::runtime_error("failed to acquire swap chain image!");
+        }
+
+		device.resetFences(*drawFence);
+        updateUniformBuffer(0);
+        
+        recordCommandBuffer(imageIndex);
+
+        vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+        const vk::SubmitInfo   submitInfo{
+            .waitSemaphoreCount   = 1,
+            .pWaitSemaphores      = &*presentCompleteSemaphore,
+            .pWaitDstStageMask    = &waitDestinationStageMask,
+            .commandBufferCount   = 1,
+            .pCommandBuffers      = &*commandBuffer,
+            .signalSemaphoreCount = 1,
+            .pSignalSemaphores    = &*renderFinishedSemaphores[imageIndex]
+        };
+        
+        queue.submit(submitInfo, *drawFence);
+             
+        const vk::PresentInfoKHR presentInfoKHR{
+            .waitSemaphoreCount = 1,
+            .pWaitSemaphores    = &*renderFinishedSemaphores[imageIndex],
+            .swapchainCount     = 1,
+            .pSwapchains        = &*swapChain,
+            .pImageIndices      = &imageIndex
+        };
+        result = queue.presentKHR(presentInfoKHR);
+
+        if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR) || framebufferResized)
+        {
+            framebufferResized = false;
+            recreateSwapChain();
+            return;
+        }
+        else
+        {
+            // There are no other success codes than eSuccess; on any error code, presentKHR already threw an exception.
+            assert(result == vk::Result::eSuccess);
+        }
     }
 
     void wait()
@@ -112,13 +166,7 @@ public:
         renderer = r;
     }
 
-    void recreateSwapChainPub()
-    {
-        device.waitIdle();
-        cleanupSwapChain();
-        createSwapChain();
-        createImageViews();
-    }
+    
 
     void setResourceManager(ResourceManager* rm)
     {
@@ -169,80 +217,40 @@ private:
     {
         presentCompleteSemaphore = vk::raii::Semaphore(device, vk::SemaphoreCreateInfo());
         drawFence                = vk::raii::Fence(device, {.flags = vk::FenceCreateFlagBits::eSignaled});
-        // renderFinishedSemaphore  = vk::raii::Semaphore(device, vk::SemaphoreCreateInfo());
-        for (size_t i = 0; i < swapChainImages.size(); ++i)
+        for(size_t i = 0; i < swapChainImages.size(); i++)
         {
             renderFinishedSemaphores.emplace_back(device, vk::SemaphoreCreateInfo());
         }
     }
 
-    /// @brief 
-    /// @return should recreate swap chain 
-    bool drawFrame()
+    void recreateFinishedSemaphores()
     {
-        auto fenceResult = device.waitForFences(*drawFence, vk::True, UINT64_MAX);
-		if (fenceResult != vk::Result::eSuccess)
-		{
-			throw std::runtime_error("failed to wait for fence!");
-		}
-
-        auto [result, imageIndex] = swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphore, nullptr);
-
-        if (result == vk::Result::eErrorOutOfDateKHR || framebufferResized)
+        for(size_t i = 0; i < swapChainImages.size(); i++)
         {
-            framebufferResized = false;
-            // recreateSwapChain();
-            return true;
+            renderFinishedSemaphores.emplace_back(device, vk::SemaphoreCreateInfo());
         }
-        if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
-        {
-            assert(result == vk::Result::eTimeout || result == vk::Result::eNotReady);
-            throw std::runtime_error("failed to acquire swap chain image!");
-        }
-
-		device.resetFences(*drawFence);
-        updateUniformBuffer(0);
-        
-        recordCommandBuffer(imageIndex);
-
-        vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
-        const vk::SubmitInfo   submitInfo{
-            .waitSemaphoreCount   = 1,
-            .pWaitSemaphores      = &*presentCompleteSemaphore,
-            .pWaitDstStageMask    = &waitDestinationStageMask,
-            .commandBufferCount   = 1,
-            .pCommandBuffers      = &*commandBuffer,
-            .signalSemaphoreCount = 1,
-            .pSignalSemaphores    = &*renderFinishedSemaphores[imageIndex]
-        };
-        
-        queue.submit(submitInfo, *drawFence);
-             
-        const vk::PresentInfoKHR presentInfoKHR{
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores    = &*renderFinishedSemaphores[imageIndex],
-            .swapchainCount     = 1,
-            .pSwapchains        = &*swapChain,
-            .pImageIndices      = &imageIndex
-        };
-        result = queue.presentKHR(presentInfoKHR);
-
-        if ((result == vk::Result::eSuboptimalKHR) || (result == vk::Result::eErrorOutOfDateKHR))
-        {
-            // recreateSwapChain();
-            return true;
-        }
-        else
-        {
-            // There are no other success codes than eSuccess; on any error code, presentKHR already threw an exception.
-            assert(result == vk::Result::eSuccess);
-        }
-        return false;
     }
+
+    void recreateSwapChain()
+    {
+        auto [width, height] = windowProvider.getFramebufferSize();
+        if(width == 0 || height == 0)
+        {
+            return;
+        }
+
+        device.waitIdle();
+        cleanupSwapChain();
+        createSwapChain();
+        recreateFinishedSemaphores();
+        createImageViews();
+    }
+
     void cleanupSwapChain()
     {
         swapChainImageViews.clear();
         swapChain = nullptr;
+        renderFinishedSemaphores.clear();
     }
 
     void createInstance()
@@ -514,7 +522,7 @@ private:
             .subresourceRange = { vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1 }
         };
 
-        for (auto& image : swapChainImages)
+        for (const auto& image : swapChainImages)
         {
             imageViewCreateInfo.image = image;
             swapChainImageViews.emplace_back( device, imageViewCreateInfo );

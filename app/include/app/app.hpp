@@ -95,10 +95,20 @@ public:
         auto& mesh2 = scene.createEntity();
         mesh2.addComponent<ComponentMesh>()->setMesh(cubeMesh);
         mesh2.addComponent<ComponentTransform>()->setPosition({0.f, 0.f, -10.5f});
+        mesh2.addComponent<ComponentAny>([](ComponentAny* comp, float deltaTime){
+            auto transform = comp->getOwner()->getComponent<ComponentTransform>();
+            const float angle = 3.141f * deltaTime / 2;
+            transform->rotate(angle, glm::vec3(0.f, 1.f, 0.f));
+        });
 
         auto& mesh3 = scene.createEntity();
         mesh3.addComponent<ComponentMesh>()->setMesh(coneMesh);
         mesh3.addComponent<ComponentTransform>()->setPosition({-.4f, 0.f, -10.5f});
+        mesh3.addComponent<ComponentAny>([](ComponentAny* comp, float deltaTime){
+            auto transform = comp->getOwner()->getComponent<ComponentTransform>();
+            const float angle = 3.141f * deltaTime / 2;
+            transform->rotate(angle, glm::vec3(1.f, 1.f, 1.f));
+        });
 
         buffCreator.addToGenerate(scene.getEntities());
         buffCreator.createBuffers();
@@ -116,6 +126,12 @@ public:
         frameLastTime = std::chrono::steady_clock::now();
         while (!window.shouldClose() && !shouldExit)
         {
+            if(window.waitIfMinimize())
+            {
+                frameLastTime = std::chrono::steady_clock::now();
+                continue;
+            }
+
             updateTime();
 
             // Process inputs
@@ -178,18 +194,7 @@ private:
     {
         std::vector<Entity*> visibleEntities = culling.getVisibleEntities(scene);
         renderer.addEntities(visibleEntities);
-
-        // Draw frame
-        if(vkEngine.drawFramePub())
-        { /// Recreating swap chan
-            window.waitIfMinimize();
-            if(window.shouldClose())
-            {
-                shouldExit = true;
-                return;
-            }
-            vkEngine.recreateSwapChainPub();
-        }
+        vkEngine.drawFrame();
     }
 
     void initMainCamera()

@@ -13,6 +13,8 @@ target_compile_features(vulkan_engine INTERFACE cxx_std_20)
 target_compile_definitions(vulkan_engine INTERFACE
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
     VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+    VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
+    GLM_FORCE_DEPTH_ZERO_TO_ONE
 )
 target_link_libraries(vulkan_engine INTERFACE Vulkan::Vulkan glm::glm glfw)
 if(ENABLE_CPP20_MODULE)
