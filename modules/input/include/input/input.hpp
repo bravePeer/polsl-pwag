@@ -1,16 +1,99 @@
 #pragma once
-#include <iostream>
-#include <GLFW/glfw3.h>
+#include <array>
+#include <utility>
+#include <optional>
 
-void inputKeyCb(GLFWwindow* window, int key, int scancode, int action, int mods)
+/// State flow:
+/// RRRRR -> PPP -> C -> RRR
+
+class Input
 {
-    if(key == GLFW_KEY_W && action == GLFW_PRESS)
+public:
+    enum class ButtonId : unsigned int
     {
-        std::cout << "Press" << std::endl;   
-    }
-}
+        // Keyboard
+        W,
+        A,
+        S,
+        D,
+        Esc,
 
-void inputInit(GLFWwindow* window)
-{
-    glfwSetKeyCallback(window, inputKeyCb);
-}
+        // Mouse
+        MouseLeft,
+        MouseRight,
+        MouseMiddle,
+
+        Count
+    };
+
+    enum class ButtonState
+    {
+        Release,
+        Press,
+        Clicked
+    };
+
+    bool isButtonPressed(ButtonId buttonId)
+    {
+        if(std::to_underlying(buttonId) >= std::to_underlying(ButtonId::Count))
+        {
+            /// @todo Log error
+            return false;
+        }
+        return buttons[std::to_underlying(buttonId)] == ButtonState::Press;
+    }
+
+    bool isButtonReleased(ButtonId buttonId)
+    {
+        if(std::to_underlying(buttonId) >= std::to_underlying(ButtonId::Count))
+        {
+            /// @todo Log error
+            return false;
+        }
+        return buttons[std::to_underlying(buttonId)] == ButtonState::Release;
+    }
+
+    struct MousePosition
+    {
+        // is double ok or too big?
+        double x;
+        double y;
+    };
+
+    struct Mouse
+    {
+        MousePosition position;
+        MousePosition lastPosition;
+        MousePosition diffPositions;
+    };
+
+    Mouse& getMouse()
+    {
+        return mouse;
+    }
+    
+    std::optional<Input::ButtonId> mouseButtonToButtonId(int glfwButton);
+
+    std::optional<Input::ButtonId> keyToButtonId(int glfwKey);
+
+    void onKey(int glfwKey, int glfwAction);
+
+    void onMouseButton(int glfwButton, int glfwAction);
+
+    void onMouseCursor(double xpos, double ypos);
+
+private:
+    std::array<ButtonState, std::to_underlying(ButtonId::Count)> buttons;
+
+    Mouse mouse;
+
+    void setButtonState(ButtonId buttonId, ButtonState state)
+    {
+        if(std::to_underlying(buttonId) >= std::to_underlying(ButtonId::Count))
+        {
+            /// @todo Log error
+            return;
+        }
+        buttons[std::to_underlying(buttonId)] = state;
+    }
+};

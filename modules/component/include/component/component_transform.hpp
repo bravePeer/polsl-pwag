@@ -30,6 +30,12 @@ public:
         dirty = true;
     }
 
+    void move(glm::vec3 distance)
+    {
+        position += distance;
+        dirty = true;
+    }
+
     glm::vec3 getPosition()
     {
         return position;

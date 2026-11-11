@@ -25,6 +25,7 @@
 
 #include "component/scene.hpp"
 
+#include "app/window_data_provider.hpp"
 
 class App
 {
@@ -50,10 +51,44 @@ public:
       renderer(vkEngine.getContext())
     {
         vkEngine.setBufferCreator(&buffCreator);
-        window.setWindowResizeCb([](GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height){
-            auto engine = reinterpret_cast<VulkanEngine*>(glfwGetWindowUserPointer(window));
-            engine->setWindowResized(true);
-        }, &vkEngine);
+
+        windowFunProvider = {
+            .frameBufferSizeFun = [](GLFWwindow* window, [[maybe_unused]] int width, [[maybe_unused]] int height){
+                auto data = static_cast<WindowDataProvider*>(glfwGetWindowUserPointer(window));
+                if(data && data->engine)
+                {
+                    data->engine->setWindowResized(true);
+                }
+            },
+            .keyFun = [](GLFWwindow* window, int key, [[maybe_unused]] int scancode, [[maybe_unused]] int action, [[maybe_unused]] int mods){
+                auto data = static_cast<WindowDataProvider*>(glfwGetWindowUserPointer(window));
+                if(data && data->input)
+                {
+                    data->input->onKey(key, action);
+                }
+            },
+            .mouseButtonFun = [](GLFWwindow* window, int button, int action, [[maybe_unused]] int mods){
+                auto data = static_cast<WindowDataProvider*>(glfwGetWindowUserPointer(window));
+                if(data && data->input)
+                {
+                    data->input->onMouseButton(button, action);
+                }
+            },
+            .mouseCursorFun = [](GLFWwindow* window, double xpos, double ypos){
+                auto data = static_cast<WindowDataProvider*>(glfwGetWindowUserPointer(window));
+                if(data && data->input)
+                {
+                    data->input->onMouseCursor(xpos, ypos);
+                }
+            }
+        };
+
+        windowDataProvider = {
+            .engine = &vkEngine,
+            .input = &input
+        };
+
+        window.initWindowCallbacks(&windowFunProvider, &windowDataProvider);
 
         vkEngine.setResourceManager(&resourceManager);
     }
@@ -156,9 +191,12 @@ private:
     SceneCulling culling;
     BufferCreator buffCreator;
     Renderer renderer;
+    Input input;
 
     Scene scene;
 
+    WindowFunProvider windowFunProvider;
+    WindowDataProvider windowDataProvider;
 
     std::vector<Object> objects;
 
@@ -186,7 +224,25 @@ private:
         const float deltaTime = deltaTimeDuration.count();
         scene.update(deltaTime);
 
+        if(input.isButtonPressed(Input::ButtonId::Esc))
+        {
+            shouldExit = true;
+            return;
+        }
+
+        if(input.isButtonPressed(Input::ButtonId::W))
+        {
+            float d = -10 * deltaTime;
+            scene.getEntityByName("main_camera")->getComponent<ComponentTransform>()->move({0.f,0.f,d});
+        }
+        else if(input.isButtonPressed(Input::ButtonId::S))
+        {
+            float d = 10 * deltaTime;
+            scene.getEntityByName("main_camera")->getComponent<ComponentTransform>()->move({0.f,0.f,d});
+        }
+        
         auto camera = scene.getEntityByName("main_camera")->getComponent<ComponentCamera>();
+
         buffCreator.set(camera->getViewMatrix(), camera->getProjectionMatrix());
     }
 

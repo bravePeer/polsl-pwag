@@ -1,6 +1,7 @@
 #pragma once
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include "app/window_data_provider.hpp"
 
 class Window
 {
@@ -34,10 +35,16 @@ public:
         return window;
     }
 
-    void setWindowResizeCb(GLFWframebuffersizefun callback, void* userPointer)
+    void initWindowCallbacks(WindowFunProvider* funs, WindowDataProvider* data)
     {
-        glfwSetWindowUserPointer(window, userPointer);
-        glfwSetFramebufferSizeCallback(window, callback);
+        glfwSetWindowUserPointer(window, data);
+
+        glfwSetFramebufferSizeCallback(window, funs->frameBufferSizeFun);
+        glfwSetKeyCallback(window, funs->keyFun);
+        glfwSetMouseButtonCallback(window, funs->mouseButtonFun);
+        
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetCursorPosCallback(window, funs->mouseCursorFun);
     }
 
     void pollEvents()
