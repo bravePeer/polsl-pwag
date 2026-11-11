@@ -15,17 +15,15 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "input/input.hpp"
+#include "engine/config.hpp"
+#include "engine/shader_loader.hpp"
+#include "engine/context.hpp"
 
-#include "vulkan_engine/vulkan_config.hpp"
-#include "vulkan_engine/vulkan_shader_loader.hpp"
-#include "vulkan_engine/vulkan_context.hpp"
-
-#include "vulkan_engine/culling.hpp"
-#include "vulkan_engine/buffer_creator.hpp"
+#include "engine/culling.hpp"
+#include "engine/buffer_creator.hpp"
 #include "resource/resource_manager.hpp"
 
-#include "vulkan_engine/renderer.hpp"
+#include "engine/renderer.hpp"
 
 struct WindowProvider
 {
@@ -65,12 +63,7 @@ public:
         cleanupSwapChain();
     }
 
-    void init()
-    {
-
-        createGraphicsPipeline();
-
-    }
+    void init();
 
     VulkanEngine(const VulkanEngine&) = delete;
     VulkanEngine& operator=(const VulkanEngine&) = delete;

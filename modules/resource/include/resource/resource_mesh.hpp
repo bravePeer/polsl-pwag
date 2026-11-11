@@ -3,7 +3,7 @@
 #include "resource/resource_utils.hpp"
 // #include <vulkan/vulkan_raii.hpp>
 #include <cstdint>
-#include "vertex/vertex.hpp"
+#include "resource/vertex.hpp"
 
 class ResourceMesh : public Resource
 {

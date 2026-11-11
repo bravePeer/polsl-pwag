@@ -1,7 +1,6 @@
 #pragma once
-#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include "app/window_data_provider.hpp"
+#include "window/window_data_provider.hpp"
 
 class Window
 {
@@ -47,10 +46,7 @@ public:
         glfwSetCursorPosCallback(window, funs->mouseCursorFun);
     }
 
-    void pollEvents()
-    {
-        glfwPollEvents();
-    }
+    void pollEvents();
 
     bool shouldClose() const
     {

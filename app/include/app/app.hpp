@@ -5,11 +5,9 @@
 #include <memory>
 
 #include "app/app_config.hpp"
-#include "app/window.hpp"
-#include "vulkan_engine/vulkan_engine.hpp"
-#include "vulkan_engine/buffer_creator.hpp"
-
-#include "vertex/object.hpp"
+#include "window/window.hpp"
+#include "engine/engine.hpp"
+#include "engine/buffer_creator.hpp"
 
 #include "component/entity.hpp"
 #include "component/component_spamer.hpp"
@@ -25,7 +23,7 @@
 
 #include "component/scene.hpp"
 
-#include "app/window_data_provider.hpp"
+#include "window/window_data_provider.hpp"
 
 class App
 {
@@ -197,8 +195,6 @@ private:
 
     WindowFunProvider windowFunProvider;
     WindowDataProvider windowDataProvider;
-
-    std::vector<Object> objects;
 
     std::chrono::time_point<std::chrono::steady_clock> frameLastTime;
     std::chrono::duration<float> deltaTimeDuration;

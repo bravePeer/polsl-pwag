@@ -1,3 +1,10 @@
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_library(AppInput STATIC
+    src/input.cpp
+)
 
-target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/input.cpp)
+target_include_directories(AppInput PUBLIC include)
+
+target_link_libraries(AppInput
+    PRIVATE glfw
+    PUBLIC Vulkan::Vulkan
+)

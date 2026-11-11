@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
-#include "vulkan_engine/vulkan_context.hpp"
-#include "vulkan_engine/buffer_creator.hpp"
+#include "engine/context.hpp"
+#include "engine/buffer_creator.hpp"
 #include "component/entity.hpp"
 #include "component/component_mesh.hpp"
 #include <vulkan/vulkan_raii.hpp>

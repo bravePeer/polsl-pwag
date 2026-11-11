@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <vulkan_engine/vulkan_context.hpp>
+#include <engine/context.hpp>
 
 extern vk::Device getDevice();
 
@@ -36,16 +36,7 @@ public:
         return false;
     }
 
-    void unload()
-    {
-        if(state != State::Loaded)
-        {
-            return;
-        }
-        
-        doUnload();
-        state = State::Released;
-    }
+    void unload();
 
     bool isLoaded() const
     {

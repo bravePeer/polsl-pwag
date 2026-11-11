@@ -1,8 +1,5 @@
 #pragma once
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <iostream>
-
+#include <cstddef>
 #include "component/component_type_id.hpp"
 
 class Entity;
@@ -28,15 +25,7 @@ public:
         }
     }
     
-    void initialize()
-    {
-        if(state == State::Uninitialized)
-        {
-            state = State::Initializing;
-            onInitialize();
-            state = State::Active;
-        }
-    }
+    void initialize();
 
     virtual void update(float deltaTime) 
     { }

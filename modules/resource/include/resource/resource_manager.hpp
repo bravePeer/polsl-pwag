@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <cstdint>
 #include "resource/resource.hpp"
-#include "vulkan_engine/vulkan_context.hpp"
+#include "engine/context.hpp"
 #include "resource/resource.hpp"
 
 class ResourceManager;

@@ -1,4 +1,5 @@
-add_subdirectory(input)
-add_subdirectory(vertex)
 add_subdirectory(component)
+add_subdirectory(input)
+# add_subdirectory(logger)
 add_subdirectory(resource)
+add_subdirectory(window)
