@@ -7,4 +7,6 @@ target_include_directories(AppComponent PUBLIC include)
 target_link_libraries(AppComponent
     PUBLIC AppResource
     PUBLIC glm::glm
+    PUBLIC AppEvent
+    PUBLIC AppInput
 )

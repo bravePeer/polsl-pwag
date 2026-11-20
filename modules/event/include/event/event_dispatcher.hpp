@@ -11,7 +11,7 @@ public:
     template<typename T, typename F>
     bool dispatch(const F& fun)
     {
-        if(event.getType() == T::GetStaticType())
+        if(event.getType() == T::getStaticType())
         {
             fun(static_cast<const T&>(event));
             return true;

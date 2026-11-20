@@ -21,8 +21,7 @@ public:
 
     glm::mat4 getViewMatrix()
     {
-        auto transform = getOwner()->getComponent<ComponentTransform>();
-        if(transform)
+        if(auto transform = getOwner()->getComponent<ComponentTransform>())
         {
             glm::vec3 position = transform->getPosition();
             glm::quat rotation = transform->getRotation();

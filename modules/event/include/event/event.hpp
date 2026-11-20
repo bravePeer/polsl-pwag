@@ -18,7 +18,8 @@ enum class EventType
     InputKey,
     InputMouseKey,
     InputMousePos,
-
+    KeyPress,
+    KeyRelease,
 };
 
 class Event
@@ -68,16 +69,16 @@ private:
     int32_t windowHeight;
 };
 
-class EventInputKey : public Event
+class EventKeyPress : public Event
 {
 public:
-    EventInputKey(int32_t keyCode, int32_t keyState)
-    : keyCode(keyCode), keyState(keyState)
+    explicit EventKeyPress(int32_t keyCode)
+    : keyCode(keyCode)
     { }
 
     static EventType getStaticType()
     {
-        return EventType::InputKey;
+        return EventType::KeyPress;
     }
 
     EventType getType() const override
@@ -87,22 +88,84 @@ public:
 
     Event* clone() const override
     {
-        return new EventInputKey(*this);
+        return new EventKeyPress(*this);
     }
 
-    int32_t getKeyValue()
+    int32_t getKeyValue() const
     {
         return keyCode;
-    }
-
-    int32_t getKeyState()
-    {
-        return keyState;
     }
 
 private:
     /// @todo Temporary has type int not enum
     int32_t keyCode; 
+};
+
+class EventKeyRelease : public Event
+{
+public:
+    explicit EventKeyRelease(int32_t keyCode)
+    : keyCode(keyCode)
+    { }
+
+    static EventType getStaticType()
+    {
+        return EventType::KeyRelease;
+    }
+
+    EventType getType() const override
+    {
+        return getStaticType();
+    }
+
+    Event* clone() const override
+    {
+        return new EventKeyRelease(*this);
+    }
+
+    int32_t getKeyValue() const
+    {
+        return keyCode;
+    }
+
+private:
     /// @todo Temporary has type int not enum
-    int32_t keyState; 
+    int32_t keyCode; 
+};
+
+class EventMousePos : public Event
+{
+public:
+    explicit EventMousePos(double mousePosX, double mousePosY)
+    : mousePosX(mousePosX), mousePosY(mousePosY)
+    { }
+
+    static EventType getStaticType()
+    {
+        return EventType::InputMousePos;
+    }
+
+    EventType getType() const override
+    {
+        return getStaticType();
+    }
+
+    Event* clone() const override
+    {
+        return new EventMousePos(*this);
+    }
+
+    double getMousePosX() const
+    {
+        return mousePosX;
+    }
+
+    double getMousePosY() const
+    {
+        return mousePosY;
+    }
+
+private:
+    double mousePosX;
+    double mousePosY;
 };

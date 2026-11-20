@@ -17,9 +17,9 @@ public:
         return entities;
     }
 
-    Entity* getEntityByName(std::string name)
+    Entity* getEntityByName(const std::string& name)
     {
-        for(auto& e : entities)
+        for(const auto& e : entities)
         {
             if(e->getName() == name)
             {
@@ -29,17 +29,29 @@ public:
         return nullptr;
     }
 
-    void update(float deltaTime)
+    void initialize() const
     {
-        for(auto& entity : entities)
+        for(const auto& entity : entities)
+        {
+            const auto& components = entity->getComponents();
+            for(const auto& [compId, component] : components)
+            {
+                component->initialize();
+            }
+        }
+    }
+
+    void update(float deltaTime) const
+    {
+        for(const auto& entity : entities)
         {
             entity->update(deltaTime);
         }
     }
 
-    void render()
+    void render() const
     {
-        for(auto& entity : entities)
+        for(const auto& entity : entities)
         {
             entity->render();
         }

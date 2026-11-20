@@ -1,12 +1,13 @@
 #include "input/input.hpp"
 #include <GLFW/glfw3.h>
 #include <optional>
+#include "input/input_enum.hpp"
 
-std::optional<Input::ButtonId> Input::keyToButtonId(int glfwKey)
+std::optional<InputButtonId> Input::keyToButtonId(int glfwKey)
 {
     switch(glfwKey)
     {
-    using enum Input::ButtonId;
+    using enum InputButtonId;
     case GLFW_KEY_W: 
         return W;
     case GLFW_KEY_A: 
@@ -29,19 +30,21 @@ void Input::onKey(int glfwKey, int glfwAction)
         if(glfwAction == GLFW_PRESS)
         {
             setButtonState(*id, Input::ButtonState::Press);
+            publishKeyPressEvent(*id);
         }
         else if(glfwAction == GLFW_RELEASE)
         {
             setButtonState(*id, Input::ButtonState::Release);
+            publishKeyReleaseEvent(*id);
         }
     }
 }
 
-std::optional<Input::ButtonId> Input::mouseButtonToButtonId(int glfwButton)
+std::optional<InputButtonId> Input::mouseButtonToButtonId(int glfwButton)
 {
     switch(glfwButton)
     {
-    using enum Input::ButtonId;
+    using enum InputButtonId;
     case GLFW_MOUSE_BUTTON_LEFT: 
         return MouseLeft;
     case GLFW_MOUSE_BUTTON_RIGHT: 
@@ -60,10 +63,12 @@ void Input::onMouseButton(int glfwButton, int glfwAction)
         if(glfwAction == GLFW_PRESS)
         {
             setButtonState(*id, Input::ButtonState::Press);
+            publishKeyPressEvent(*id);
         }
         else if(glfwAction == GLFW_RELEASE)
         {
             setButtonState(*id, Input::ButtonState::Release);
+            publishKeyReleaseEvent(*id);
         }
     }
 }
@@ -78,4 +83,6 @@ void Input::onMouseCursor(double xpos, double ypos)
 
     mouse.diffPositions.x = mouse.lastPosition.x - xpos;
     mouse.diffPositions.y = mouse.lastPosition.y - ypos;
+
+    publishMousePos(mouse.position.x, mouse.position.y);
 }

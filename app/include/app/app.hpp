@@ -24,6 +24,7 @@
 #include "component/scene.hpp"
 
 #include "window/window_data_provider.hpp"
+#include "component/component_movement.hpp"
 
 class App
 {
@@ -115,6 +116,7 @@ public:
         auto& camera = scene.createEntity("main_camera");
         camera.addComponent<ComponentCamera>();
         camera.addComponent<ComponentTransform>();
+        camera.addComponent<CompoenentMovement>();
 
         auto& mesh1 = scene.createEntity();
         mesh1.addComponent<ComponentMesh>()->setMesh(cubeMesh);
@@ -152,6 +154,8 @@ public:
         
         renderer.setBuffCreator(&buffCreator);
         renderer.setResourceManager(&resourceManager);
+
+        scene.initialize();
     }
 
     void run()
@@ -220,22 +224,11 @@ private:
         const float deltaTime = deltaTimeDuration.count();
         scene.update(deltaTime);
 
-        if(input.isButtonPressed(Input::ButtonId::Esc))
-        {
-            shouldExit = true;
-            return;
-        }
-
-        if(input.isButtonPressed(Input::ButtonId::W))
-        {
-            float d = -10 * deltaTime;
-            scene.getEntityByName("main_camera")->getComponent<ComponentTransform>()->move({0.f,0.f,d});
-        }
-        else if(input.isButtonPressed(Input::ButtonId::S))
-        {
-            float d = 10 * deltaTime;
-            scene.getEntityByName("main_camera")->getComponent<ComponentTransform>()->move({0.f,0.f,d});
-        }
+        // if(input.isButtonPressed(Input::ButtonId::Esc))
+        // {
+        //     shouldExit = true;
+        //     return;
+        // }
         
         auto camera = scene.getEntityByName("main_camera")->getComponent<ComponentCamera>();
 

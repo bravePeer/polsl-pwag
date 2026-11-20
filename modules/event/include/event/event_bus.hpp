@@ -9,6 +9,11 @@
 class EventBus
 {
 public:
+    static EventBus& getEventBus()
+    {
+        static EventBus eventBus;
+        return eventBus;
+    }
 
     void setImmediateMode(bool immediate)
     {
@@ -70,7 +75,15 @@ public:
         }
     }
 
+protected:
+
 private:
+    EventBus()
+    { }
+
+    EventBus(const EventBus&)
+    { }
+
     std::vector<EventListener*> listeners;
     std::queue<std::unique_ptr<Event>> eventQueue;
     std::mutex queueMutex;

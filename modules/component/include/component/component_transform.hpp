@@ -30,23 +30,56 @@ public:
         dirty = true;
     }
 
+    void rotateWorld(float angle, glm::vec3 axis)
+    {
+        rotation = glm::normalize(glm::angleAxis(angle, axis) * rotation);
+        dirty = true;
+    }
+
+    void rotateLocal(float angle, glm::vec3 axis)
+    {
+        rotation = glm::normalize(rotation * glm::angleAxis(angle, axis));
+        dirty = true;
+    }
+
     void move(glm::vec3 distance)
     {
         position += distance;
         dirty = true;
     }
 
-    glm::vec3 getPosition()
+    void moveLocal(glm::vec3 distance)
+    {
+        position += rotation * distance;
+        dirty = true;
+    }
+
+    glm::vec3 getForward() const
+    {
+        return rotation * glm::vec3(0.f, 0.f, -1.f);
+    }
+
+    glm::vec3 getRight() const
+    {
+        return rotation * glm::vec3(1.f, 0.f, 0.f);
+    }
+
+    glm::vec3 getUp() const
+    {
+        return rotation * glm::vec3(0.f, 1.f, 0.f);
+    }
+
+    glm::vec3 getPosition() const
     {
         return position;
     }
 
-    glm::quat getRotation()
+    glm::quat getRotation() const
     {
         return rotation;
     }
 
-    glm::vec3 getScale()
+    glm::vec3 getScale() const
     {
         return scale;
     }
