@@ -55,7 +55,7 @@ public:
         std::queue<std::unique_ptr<Event>> currentEvents;
 
         {
-            std::lock_guard<std::mutex> lock(queueMutex);
+            std::scoped_lock lock{queueMutex};
             std::swap(currentEvents, eventQueue);
         }
 
