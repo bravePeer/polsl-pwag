@@ -8,11 +8,3 @@ struct WindowDataProvider
     VulkanEngine* engine;
     Input* input;
 };
-
-struct WindowFunProvider
-{
-    GLFWframebuffersizefun frameBufferSizeFun;
-    GLFWkeyfun keyFun;
-    GLFWmousebuttonfun mouseButtonFun;
-    GLFWcursorposfun mouseCursorFun;
-};

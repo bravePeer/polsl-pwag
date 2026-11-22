@@ -523,7 +523,7 @@ private:
 
     void createGraphicsPipeline()
     {
-        ShaderLoader shaders(device, "shaders/slang.spv");
+        ShaderLoader shaders(device, "assets/shaders/slang.spv");
         
         std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
 

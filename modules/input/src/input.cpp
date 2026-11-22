@@ -1,70 +1,17 @@
 #include "input/input.hpp"
-#include <GLFW/glfw3.h>
-#include <optional>
+#include "input/input_enum.hpp"
 
-std::optional<Input::ButtonId> Input::keyToButtonId(int glfwKey)
+void Input::onKey(InputButtonId buttonId, InputAction action)
 {
-    switch(glfwKey)
+    if(action == InputAction::Press)
     {
-    using enum Input::ButtonId;
-    case GLFW_KEY_W: 
-        return W;
-    case GLFW_KEY_A: 
-        return A;
-    case GLFW_KEY_S: 
-        return S;
-    case GLFW_KEY_D: 
-        return D;
-    case GLFW_KEY_ESCAPE:
-        return Esc;
-    default:
-        return std::nullopt;
+        setButtonState(buttonId, Input::ButtonState::Press);
+        publishKeyPressEvent(buttonId);
     }
-}
-
-void Input::onKey(int glfwKey, int glfwAction)
-{
-    if(auto id = keyToButtonId(glfwKey))
+    else if(action == InputAction::Release)
     {
-        if(glfwAction == GLFW_PRESS)
-        {
-            setButtonState(*id, Input::ButtonState::Press);
-        }
-        else if(glfwAction == GLFW_RELEASE)
-        {
-            setButtonState(*id, Input::ButtonState::Release);
-        }
-    }
-}
-
-std::optional<Input::ButtonId> Input::mouseButtonToButtonId(int glfwButton)
-{
-    switch(glfwButton)
-    {
-    using enum Input::ButtonId;
-    case GLFW_MOUSE_BUTTON_LEFT: 
-        return MouseLeft;
-    case GLFW_MOUSE_BUTTON_RIGHT: 
-        return MouseRight;
-    case GLFW_MOUSE_BUTTON_MIDDLE: 
-        return MouseMiddle;
-    default:
-        return std::nullopt;
-    }
-}
-
-void Input::onMouseButton(int glfwButton, int glfwAction)
-{
-    if(auto id = mouseButtonToButtonId(glfwButton))
-    {
-        if(glfwAction == GLFW_PRESS)
-        {
-            setButtonState(*id, Input::ButtonState::Press);
-        }
-        else if(glfwAction == GLFW_RELEASE)
-        {
-            setButtonState(*id, Input::ButtonState::Release);
-        }
+        setButtonState(buttonId, Input::ButtonState::Release);
+        publishKeyReleaseEvent(buttonId);
     }
 }
 
@@ -78,4 +25,6 @@ void Input::onMouseCursor(double xpos, double ypos)
 
     mouse.diffPositions.x = mouse.lastPosition.x - xpos;
     mouse.diffPositions.y = mouse.lastPosition.y - ypos;
+
+    publishMousePos(mouse.position.x, mouse.position.y);
 }

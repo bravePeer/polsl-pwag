@@ -23,7 +23,8 @@ add_compile_definitions(
 add_compile_options(
     -Wall 
     -Wextra 
-    -Wpedantic 
+    -Wpedantic
+    # -Wshadow
     # -Werror
 )
 
