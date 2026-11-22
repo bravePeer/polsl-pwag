@@ -9,6 +9,9 @@
 #include "input/input_enum.hpp"
 #include "component/component_transform.hpp"
 
+#include "event/events/events_keyboard.hpp"
+#include "event/events/events_mouse.hpp"
+
 class CompoenentMovement : public Component, public EventListener
 {
 public:
@@ -78,7 +81,7 @@ public:
         EventDispatcher dispatcher(event);
         
         dispatcher.dispatch<EventKeyPress>([this](const EventKeyPress& event){
-            switch(static_cast<InputButtonId>(event.getKeyValue()))
+            switch(event.getKeyValue())
             {
             using enum InputButtonId;
             case W:
@@ -99,7 +102,7 @@ public:
         });
 
         dispatcher.dispatch<EventKeyRelease>([this](const EventKeyRelease& event){
-            switch(static_cast<InputButtonId>(event.getKeyValue()))
+            switch(event.getKeyValue())
             {
             using enum InputButtonId;
             case W:

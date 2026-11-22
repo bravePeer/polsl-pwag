@@ -74,7 +74,7 @@ public:
         return true;
     }
 
-    std::vector<const char*> getRequiredInstanceExtensions()
+    std::vector<const char*> getRequiredInstanceExtensions() const
     {
         uint32_t glfwExtensionCount = 0;
         auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);

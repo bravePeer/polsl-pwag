@@ -5,7 +5,8 @@
 #include "input/input_enum.hpp"
 #include <type_traits>
 #include "event/event_bus.hpp"
-#include "event/event.hpp"
+#include "event/events/events_mouse.hpp"
+#include "event/events/events_keyboard.hpp"
 
 /// State flow:
 /// RRRRR -> PPP -> C -> RRR
@@ -42,7 +43,6 @@ public:
 
     struct MousePosition
     {
-        // is double ok or too big?
         double x;
         double y;
     };
@@ -88,13 +88,13 @@ private:
 
     void publishKeyPressEvent(InputButtonId buttonId)
     {
-        EventKeyPress event(static_cast<int>(std::to_underlying(buttonId)));
+        EventKeyPress event(buttonId);
         eventBus.publishEvent(event);
     }
 
     void publishKeyReleaseEvent(InputButtonId buttonId)
     {
-        EventKeyRelease event(static_cast<int>(std::to_underlying(buttonId)));
+        EventKeyRelease event(buttonId);
         eventBus.publishEvent(event);
     }
 

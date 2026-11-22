@@ -26,6 +26,8 @@
 #include "window/window_data_provider.hpp"
 #include "component/component_movement.hpp"
 
+#include "app/app_event_listener.hpp"
+
 class App
 {
 public:
@@ -47,7 +49,8 @@ public:
       vkEngine(windowProvider),
       resourceManager(vkEngine.getContext()),
       buffCreator(vkEngine.getContext()),
-      renderer(vkEngine.getContext())
+      renderer(vkEngine.getContext()),
+      appClose(shouldExit)
     {
         vkEngine.setBufferCreator(&buffCreator);
 
@@ -99,64 +102,7 @@ public:
         vkEngine.getContext().device.waitIdle();
     }
 
-    void init()
-    {
-        resourceManager.load<ResourceMesh>("cube", 
-            std::make_unique<ResourceMesh::ResourceMeshData>(
-                createCube(.5f,.5f,.5f)
-        ));
-        auto cubeMesh = resourceManager.getResource<ResourceMesh>("cube");
-        resourceManager.load<ResourceMesh>("cone", 
-            std::make_unique<ResourceMesh::ResourceMeshData>(
-                createCone(.3f, .4f)
-        ));
-        auto coneMesh = resourceManager.getResource<ResourceMesh>("cone");
-        resourceManager.loadToGpu();
-
-        auto& camera = scene.createEntity("main_camera");
-        camera.addComponent<ComponentCamera>();
-        camera.addComponent<ComponentTransform>();
-        camera.addComponent<CompoenentMovement>();
-
-        auto& mesh1 = scene.createEntity();
-        mesh1.addComponent<ComponentMesh>()->setMesh(cubeMesh);
-        mesh1.addComponent<ComponentTransform>()->setPosition({0.f, -0.5f, -5.5f});
-        mesh1.addComponent<ComponentAny>([](ComponentAny* comp, float deltaTime){
-            auto transform = comp->getOwner()->getComponent<ComponentTransform>();
-            const float angle = 3.141f * deltaTime / 2;
-            transform->rotate(angle, glm::vec3(0.f, 1.f, 1.f));
-        });
-
-        auto& mesh2 = scene.createEntity();
-        mesh2.addComponent<ComponentMesh>()->setMesh(cubeMesh);
-        mesh2.addComponent<ComponentTransform>()->setPosition({0.f, 0.f, -10.5f});
-        mesh2.addComponent<ComponentAny>([](ComponentAny* comp, float deltaTime){
-            auto transform = comp->getOwner()->getComponent<ComponentTransform>();
-            const float angle = 3.141f * deltaTime / 2;
-            transform->rotate(angle, glm::vec3(0.f, 1.f, 0.f));
-        });
-
-        auto& mesh3 = scene.createEntity();
-        mesh3.addComponent<ComponentMesh>()->setMesh(coneMesh);
-        mesh3.addComponent<ComponentTransform>()->setPosition({-.4f, 0.f, -10.5f});
-        mesh3.addComponent<ComponentAny>([](ComponentAny* comp, float deltaTime){
-            auto transform = comp->getOwner()->getComponent<ComponentTransform>();
-            const float angle = 3.141f * deltaTime / 2;
-            transform->rotate(angle, glm::vec3(1.f, 1.f, 1.f));
-        });
-
-        buffCreator.addToGenerate(scene.getEntities());
-        buffCreator.createBuffers();
-        buffCreator.createDescriptorSet();
-        buffCreator.bindUboOffsets();
-        vkEngine.init();
-        vkEngine.setRenderer(&renderer);
-        
-        renderer.setBuffCreator(&buffCreator);
-        renderer.setResourceManager(&resourceManager);
-
-        scene.initialize();
-    }
+    void init();
 
     void run()
     {
@@ -183,6 +129,11 @@ public:
         }
     }
 
+    void exit()
+    {
+        shouldExit = true;
+    }
+
 private:
     bool shouldExit = false;
 
@@ -200,6 +151,8 @@ private:
     WindowFunProvider windowFunProvider;
     WindowDataProvider windowDataProvider;
 
+    AppClose appClose;
+
     std::chrono::time_point<std::chrono::steady_clock> frameLastTime;
     std::chrono::duration<float> deltaTimeDuration;
     void updateTime()
@@ -209,26 +162,20 @@ private:
         frameLastTime = now;
     }
 
-    float getFps()
+    float getFps() const
     {
         return 1.f / deltaTimeDuration.count();
     }
 
     void fixedUpdate()
     {
-
+        /// @todo Add fixed update
     }
 
     void update()
     {
         const float deltaTime = deltaTimeDuration.count();
         scene.update(deltaTime);
-
-        // if(input.isButtonPressed(Input::ButtonId::Esc))
-        // {
-        //     shouldExit = true;
-        //     return;
-        // }
         
         auto camera = scene.getEntityByName("main_camera")->getComponent<ComponentCamera>();
 

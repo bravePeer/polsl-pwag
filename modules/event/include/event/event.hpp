@@ -1,9 +1,15 @@
 #pragma once
-#include <cstdint>
+#include <memory>
 
 enum class EventCategory
 {
-
+    None = 0,
+    Application = 1 << 0,
+    Window      = 1 << 1,
+    Input       = 1 << 2,
+    Keyboard    = 1 << 3,
+    Mouse       = 1 << 4,
+    MouseButton = 1 << 5,
 };
 
 enum class EventPriority
@@ -16,8 +22,8 @@ enum class EventType
     WindowResize,
 
     InputKey,
-    InputMouseKey,
-    InputMousePos,
+    MouseKey,
+    MousePos,
     KeyPress,
     KeyRelease,
 };
@@ -29,143 +35,28 @@ public:
 
     virtual EventType getType() const = 0;
 
-    virtual Event* clone() const = 0;
+    virtual std::unique_ptr<Event> clone() const = 0;
 };
 
-class EventWindowResize : public Event
+/// @brief 
+/// @tparam D Derived
+/// @tparam T Type of event
+template <typename D, EventType T>
+class EventBase : public Event
 {
 public:
-    EventWindowResize(int32_t width, int32_t height)
-    : windowWidth(width), windowHeight(height)
-    { }
-
-    static EventType getStaticType()
+    static constexpr EventType getStaticType()
     {
-        return EventType::WindowResize;
+        return T;
     }
 
     EventType getType() const override
     {
-        return getStaticType();
+        return T;
     }
-
-    Event* clone() const override
+    
+    std::unique_ptr<Event> clone() const override
     {
-        return new EventWindowResize(*this);
+        return std::make_unique<D>(static_cast<const D&>(*this));
     }
-
-    int32_t getWindowWidth()
-    {
-        return windowWidth;
-    }
-
-    int32_t getWindowHeight()
-    {
-        return windowHeight;
-    }
-
-private:
-    int32_t windowWidth;
-    int32_t windowHeight;
-};
-
-class EventKeyPress : public Event
-{
-public:
-    explicit EventKeyPress(int32_t keyCode)
-    : keyCode(keyCode)
-    { }
-
-    static EventType getStaticType()
-    {
-        return EventType::KeyPress;
-    }
-
-    EventType getType() const override
-    {
-        return getStaticType();
-    }
-
-    Event* clone() const override
-    {
-        return new EventKeyPress(*this);
-    }
-
-    int32_t getKeyValue() const
-    {
-        return keyCode;
-    }
-
-private:
-    /// @todo Temporary has type int not enum
-    int32_t keyCode; 
-};
-
-class EventKeyRelease : public Event
-{
-public:
-    explicit EventKeyRelease(int32_t keyCode)
-    : keyCode(keyCode)
-    { }
-
-    static EventType getStaticType()
-    {
-        return EventType::KeyRelease;
-    }
-
-    EventType getType() const override
-    {
-        return getStaticType();
-    }
-
-    Event* clone() const override
-    {
-        return new EventKeyRelease(*this);
-    }
-
-    int32_t getKeyValue() const
-    {
-        return keyCode;
-    }
-
-private:
-    /// @todo Temporary has type int not enum
-    int32_t keyCode; 
-};
-
-class EventMousePos : public Event
-{
-public:
-    explicit EventMousePos(double mousePosX, double mousePosY)
-    : mousePosX(mousePosX), mousePosY(mousePosY)
-    { }
-
-    static EventType getStaticType()
-    {
-        return EventType::InputMousePos;
-    }
-
-    EventType getType() const override
-    {
-        return getStaticType();
-    }
-
-    Event* clone() const override
-    {
-        return new EventMousePos(*this);
-    }
-
-    double getMousePosX() const
-    {
-        return mousePosX;
-    }
-
-    double getMousePosY() const
-    {
-        return mousePosY;
-    }
-
-private:
-    double mousePosX;
-    double mousePosY;
 };
