@@ -58,23 +58,17 @@ public:
     {
         return mouse;
     }
-    
-    std::optional<InputButtonId> mouseButtonToButtonId(int glfwButton);
 
-    std::optional<InputButtonId> keyToButtonId(int glfwKey);
-
-    void onKey(int glfwKey, int glfwAction);
-
-    void onMouseButton(int glfwButton, int glfwAction);
+    void onKey(InputButtonId buttonId, InputAction action);
 
     void onMouseCursor(double xpos, double ypos);
 
 private:
     EventBus& eventBus = EventBus::getEventBus();
 
-    std::array<ButtonState, std::to_underlying(InputButtonId::Count)> buttons;
+    std::array<ButtonState, std::to_underlying(InputButtonId::Count)> buttons{};
 
-    Mouse mouse;
+    Mouse mouse{};
 
     void setButtonState(InputButtonId buttonId, ButtonState state)
     {

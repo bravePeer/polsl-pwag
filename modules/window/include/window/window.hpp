@@ -1,11 +1,13 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include "window/window_data_provider.hpp"
+#include "event/event_bus.hpp"
 
 class Window
 {
 public:
-    Window(int width, int height, const char *title)
+    Window(int width, int height, const char *title, Input& input, EventBus& eventBus = EventBus::getEventBus())
+    : input(input), eventBus(eventBus)
     {
         if(glfwInit() != GLFW_TRUE)
         {
@@ -22,6 +24,7 @@ public:
     }
     ~Window()
     {
+        glfwSetCursorPos(window, storedCursorX, storedCursorY);
         glfwDestroyWindow(window);
         glfwTerminate();
     }
@@ -34,55 +37,30 @@ public:
         return window;
     }
 
-    void initWindowCallbacks(WindowFunProvider* funs, WindowDataProvider* data)
+    void setDataProvider(const WindowDataProvider& dataProvider)
     {
-        glfwSetWindowUserPointer(window, data);
-
-        glfwSetFramebufferSizeCallback(window, funs->frameBufferSizeFun);
-        glfwSetKeyCallback(window, funs->keyFun);
-        glfwSetMouseButtonCallback(window, funs->mouseButtonFun);
-        
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        glfwSetCursorPosCallback(window, funs->mouseCursorFun);
+        windowDataProvider = dataProvider;
     }
+    
+    /// @brief Use events
+    void initWindowCallbacks();
 
-    void pollEvents();
+    void pollEvents() const;
 
-    bool shouldClose() const
-    {
-        return glfwWindowShouldClose(window);
-    }
+    bool shouldClose() const;
 
     /// @brief Checks frame buffer size and waits if is 0x0
     /// @return true if frame buffer was 0x0 (minimized)
-    bool waitIfMinimize()
-    {
-        int width = 0;
-        int height = 0;
-        
-        glfwGetFramebufferSize(window, &width, &height);
-        if(width != 0 && height != 0)
-        {
-            return false;
-        }
+    bool waitIfMinimize();
 
-        while ((width == 0 || height == 0) && !glfwWindowShouldClose(window))
-        {
-            glfwGetFramebufferSize(window, &width, &height);
-            glfwWaitEvents();
-        }
-        return true;
-    }
-
-    std::vector<const char*> getRequiredInstanceExtensions() const
-    {
-        uint32_t glfwExtensionCount = 0;
-        auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-        std::vector extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-        return extensions;
-    }
+    std::vector<const char*> getRequiredInstanceExtensions() const;
     
 private:
     GLFWwindow* window = nullptr;
+    Input& input;
+    EventBus& eventBus;
+    WindowDataProvider windowDataProvider;
+
+    double storedCursorX = 0.;
+    double storedCursorY = 0.;
 };

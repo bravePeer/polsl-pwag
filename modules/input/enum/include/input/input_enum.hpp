@@ -16,3 +16,10 @@ enum class InputButtonId : unsigned int
 
     Count
 };
+
+enum class InputAction
+{
+    Release,
+    Press,
+    Repeat
+};

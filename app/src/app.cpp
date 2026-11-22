@@ -1,6 +1,7 @@
 #include "app/app.hpp"
+#include "window/window_data_provider.hpp"
 
-void loadScene(Scene& scene)
+void loadScene(ResourceManager& resourceManager, Scene& scene)
 {
     resourceManager.load<ResourceMesh>("cube", 
         std::make_unique<ResourceMesh::ResourceMeshData>(
@@ -49,7 +50,7 @@ void loadScene(Scene& scene)
 
 void App::init()
 {
-    loadScene(scene);
+    loadScene(resourceManager, scene);
 
     buffCreator.addToGenerate(scene.getEntities());
     buffCreator.createBuffers();
