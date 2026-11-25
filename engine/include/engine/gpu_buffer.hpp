@@ -2,7 +2,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <cstdint>
 
-struct VulkanBuffer
+struct GpuBuffer
 {
     vk::raii::DeviceMemory bufferMemory = nullptr;
     vk::raii::Buffer buffer = nullptr;

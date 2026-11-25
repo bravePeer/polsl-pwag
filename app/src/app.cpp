@@ -1,5 +1,6 @@
 #include "app/app.hpp"
 #include "window/window_data_provider.hpp"
+#include "engine/gpu_loader.hpp"
 
 void loadScene(ResourceManager& resourceManager, Scene& scene)
 {
@@ -13,7 +14,8 @@ void loadScene(ResourceManager& resourceManager, Scene& scene)
             createCone(.3f, .4f)
     ));
     auto coneMesh = resourceManager.getResource<ResourceMesh>("cone");
-    resourceManager.loadToGpu();
+    auto ref = resourceManager.getMeshes();
+    GpuLoader::getGpuLoader().loadMeshes(ref);
 
     auto& camera = scene.createEntity("main_camera");
     camera.addComponent<ComponentCamera>();

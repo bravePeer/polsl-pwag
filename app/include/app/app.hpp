@@ -27,6 +27,7 @@
 #include "component/component_movement.hpp"
 
 #include "app/app_event_listener.hpp"
+#include "engine/gpu_loader.hpp"
 
 class App
 {
@@ -35,12 +36,15 @@ public:
     : window(width, height, title, input),
     //   windowProvider,
       vkEngine(windowProvider),
-      resourceManager(vkEngine.getContext()),
       buffCreator(vkEngine.getContext()),
       renderer(vkEngine.getContext()),
       appClose(shouldExit)
     {
         vkEngine.setBufferCreator(&buffCreator);
+
+        GpuLoader::getGpuLoader().setEngineContextGetter([&engine = this->vkEngine](){
+            return engine.getContext();
+        });
 
         windowDataProvider = {
             .engine = &vkEngine,
@@ -58,6 +62,7 @@ public:
     ~App() noexcept
     { 
         vkEngine.getContext().device.waitIdle();
+        GpuLoader::getGpuLoader().release();
     }
 
     void init();

@@ -6,6 +6,7 @@
 #include "component/component_mesh.hpp"
 #include <vulkan/vulkan_raii.hpp>
 #include "resource/resource_manager.hpp"
+#include "engine/gpu_loader.hpp"
 
 class Renderer
 {
@@ -50,11 +51,11 @@ public:
 
         // auto& commandBuffer = vkContext.commandBuffer;
 
-        auto& vetices = resourceManager->getVertexBuffer();
-        auto& indices = resourceManager->getIndexBuffer();
+        auto& veticesBuffer = GpuLoader::getGpuLoader().getVertexBuffer();
+        auto& indicesBuffer = GpuLoader::getGpuLoader().getIndexBuffer();
         
-        commandBuffer.bindVertexBuffers(0, *vetices.buffer, {0});
-        commandBuffer.bindIndexBuffer(*indices.buffer, 0, vk::IndexType::eUint32);
+        commandBuffer.bindVertexBuffers(0, *veticesBuffer.buffer, {0});
+        commandBuffer.bindIndexBuffer(*indicesBuffer.buffer, 0, vk::IndexType::eUint32);
 
         for(auto& meshes : meshesReadyToRender)
         {

@@ -7,6 +7,10 @@
 #include <vector>
 #include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
+#include "engine/gpu_buffer.hpp"
+#include "engine/ubo.hpp"
+
+
 
 /// @brief Create VMA (Vulkan Memory Allocator)
 class BufferCreator
@@ -42,7 +46,7 @@ public:
         }
     }
 
-    VulkanBuffer createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
+    GpuBuffer createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
     {
         vk::BufferCreateInfo bufferInfo{
             .size = size, 
@@ -211,7 +215,7 @@ private:
     size_t stride;
     vk::raii::DescriptorSetLayout descriptorSetLayout = nullptr;
     vk::raii::DescriptorPool descriptorPool = nullptr;
-    VulkanBuffer buffer;
+    GpuBuffer buffer;
 
     glm::mat4 view;
     glm::mat4 proj;

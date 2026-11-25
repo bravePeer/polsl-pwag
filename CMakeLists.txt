@@ -50,6 +50,6 @@ function (add_slang_shader_target TARGET)
     add_custom_target (${TARGET} DEPENDS ${SHADERS_DIR}/slang.spv)
 endfunction()
 
-set(SHADER_SLANG_SOURCES ${CMAKE_CURRENT_LIST_DIR}/assets/shaders/shader_with_buffers.slang)
+set(SHADER_SLANG_SOURCES ${CMAKE_CURRENT_LIST_DIR}/assets/shaders/shader.slang)
 add_slang_shader_target(shaders SOURCES ${SHADER_SLANG_SOURCES})
 add_dependencies(vulkan_app shaders)

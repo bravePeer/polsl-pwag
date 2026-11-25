@@ -9,4 +9,5 @@ target_link_libraries(Engine
     PUBLIC glm::glm 
     PUBLIC glfw
     PUBLIC AppComponent
+    PUBLIC AppResource
 )

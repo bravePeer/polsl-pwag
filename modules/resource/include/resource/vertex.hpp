@@ -1,45 +1,11 @@
 #pragma once
-#include <vulkan/vulkan_raii.hpp>
 #include <glm/glm.hpp>
 #include <vector>
 #include <array>
-
-struct UniformBufferObject
-{
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-};
 
 struct Vertex
 {
     glm::vec3 pos;
     glm::vec3 color;
-
-    static vk::VertexInputBindingDescription getBindingDescription()
-    {
-        return {
-            .binding = 0,
-            .stride = sizeof(Vertex),
-            .inputRate = vk::VertexInputRate::eVertex
-        };
-    }
-
-    static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions()
-    {
-        return {{
-            {
-                .location = 0,
-                .binding = 0,
-                .format = vk::Format::eR32G32B32Sfloat,
-                .offset = offsetof(Vertex, pos)
-            },
-            {
-                .location = 1,
-                .binding = 0,
-                .format = vk::Format::eR32G32B32Sfloat,
-                .offset = offsetof(Vertex, color)
-            }
-        }};
-    }
+    // glm::vec2 texCoord;
 };

@@ -5,7 +5,5 @@ add_library(AppResource STATIC
 target_include_directories(AppResource PUBLIC include)
 
 target_link_libraries(AppResource
-    PUBLIC Engine
-    PUBLIC Vulkan::Vulkan
     PUBLIC glm::glm
 )

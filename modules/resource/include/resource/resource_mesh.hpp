@@ -1,25 +1,22 @@
 #pragma once
 #include "resource/resource.hpp"
-#include "resource/resource_utils.hpp"
-// #include <vulkan/vulkan_raii.hpp>
 #include <cstdint>
 #include "resource/vertex.hpp"
 
 class ResourceMesh : public Resource
 {
-friend class ResourceManager;
 public:
     struct ResourceMeshData
     {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
 
-        uint64_t getVerticesSize()
+        uint64_t getVerticesSize() const
         {
             return sizeof(Vertex) * vertices.size();
         }
 
-        uint64_t getIndicesSize()
+        uint64_t getIndicesSize() const
         {
             return sizeof(uint32_t) * indices.size();
         }
@@ -30,8 +27,8 @@ public:
         uint64_t vertexOffsetBytes; // Offset in bytes
         uint64_t vertexOffset;      // Offset of vertex objects is a number of objects
         uint64_t vertexSize;        // Size of vertex objects in bytes
-        uint64_t verticesSize;        // Size of vertex objects in bytes
-        uint64_t verticesCount;       // Count of vertex objects
+        uint64_t verticesSize;      // Size of vertex objects in bytes
+        uint64_t verticesCount;     // Count of vertex objects
 
         uint64_t indexOffsetBytes;  // Offset in bytes
         uint64_t indexOffset;       // Offset is a number of objects
@@ -40,11 +37,11 @@ public:
         uint64_t indicesCount;      // Count of index objects
     };
 
-    explicit ResourceMesh(const std::string& nameId, VulkanContext& vulkanContext, std::unique_ptr<ResourceMeshData> meshData)
-    : Resource(nameId, vulkanContext), meshData(std::move(meshData))
+    explicit ResourceMesh(const std::string& nameId, std::unique_ptr<ResourceMeshData> meshData)
+    : Resource(nameId), meshData(std::move(meshData))
     { }
 
-    ~ResourceMesh()
+    ~ResourceMesh() override
     {
         if(isLoaded())
         {
@@ -74,11 +71,10 @@ public:
         meshLocation.indicesSize = indicesSize;
         meshLocation.indicesCount = indicesCount;
     }
-
-protected:
-    std::unique_ptr<ResourceMeshData>& getMeshData()
+    
+    const ResourceMeshData* getMeshData() const
     {
-        return meshData;
+        return meshData.get();
     }
 
 private:

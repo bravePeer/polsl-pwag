@@ -1,8 +1,5 @@
 #pragma once
 #include <string>
-#include <engine/context.hpp>
-
-extern vk::Device getDevice();
 
 class Resource
 {
@@ -14,8 +11,8 @@ public:
         Released,
     };
 
-    explicit Resource(const std::string& nameId, VulkanContext& vulkanContext)
-    : vulkanContext(vulkanContext), nameId(nameId)
+    explicit Resource(const std::string& nameId)
+    : nameId(nameId)
     { }
 
     virtual ~Resource() = default;
@@ -47,9 +44,6 @@ public:
     {
         return nameId;
     }
-
-protected:
-    VulkanContext& vulkanContext;
 
 private:
     std::string nameId;
