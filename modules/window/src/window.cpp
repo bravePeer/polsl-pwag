@@ -9,7 +9,6 @@ void Window::initWindowCallbacks()
     glfwSetFramebufferSizeCallback(window, 
         [](GLFWwindow* glfwWindow, int width, int height){
             auto win = static_cast<Window*>(glfwGetWindowUserPointer(glfwWindow));
-            assert(win);
             EventWindowResize event(width, height);
             win->eventBus.publishEvent(event);
         }

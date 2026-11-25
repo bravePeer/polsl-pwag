@@ -4,13 +4,11 @@ project(vulkan_app LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
-
 find_package(glfw3 REQUIRED)
 find_package(glm REQUIRED)
 find_package(slang CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
-# find_program(SLANGC_EXECUTABLE slangc REQUIRED)
+find_program(SLANGC_EXECUTABLE slangc REQUIRED)
 
 add_compile_definitions(
     VULKAN_HPP_DISPATCH_LOADER_DYNAMIC
@@ -28,9 +26,9 @@ add_compile_options(
     # -Werror
 )
 
-add_subdirectory(app)
-add_subdirectory(engine)
 add_subdirectory(modules)
+add_subdirectory(engine)
+add_subdirectory(app)
 
 
 

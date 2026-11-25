@@ -1,5 +1,4 @@
 #include "app/app.hpp"
-#include "window/window_data_provider.hpp"
 #include "engine/gpu_loader.hpp"
 
 void loadScene(ResourceManager& resourceManager, Scene& scene)

@@ -5,6 +5,8 @@
 #include <typeindex>
 #include <type_traits>
 #include <cstdint>
+#include <vector>
+#include <typeinfo>
 #include "resource/resource.hpp"
 #include "resource/resource_mesh.hpp"
 
@@ -149,7 +151,7 @@ public:
                 resourceData.resource->unload();
             }
 
-            auto& resIt = resources.find(std::type_index(typeid(T)));
+            auto resIt = resources.find(std::type_index(typeid(T)));
             if(resIt != resources.end())
             {
                 auto& res = resIt->second;

@@ -23,7 +23,6 @@
 
 #include "component/scene.hpp"
 
-#include "window/window_data_provider.hpp"
 #include "component/component_movement.hpp"
 
 #include "app/app_event_listener.hpp"
@@ -46,12 +45,6 @@ public:
             return engine.getContext();
         });
 
-        windowDataProvider = {
-            .engine = &vkEngine,
-            .input = &input
-        };
-
-        window.setDataProvider(windowDataProvider);
         window.initWindowCallbacks();
 
         vkEngine.setResourceManager(&resourceManager);
@@ -105,16 +98,10 @@ private:
     WindowProvider windowProvider={
         .instanceExtensions = window.getRequiredInstanceExtensions(),
         .getFramebufferSize = [this](){
-          int w;
-          int h;
-          glfwGetFramebufferSize(window.getWindow(), &w, &h);
-          return std::pair{w, h};
+            return window.getFrameBufferSize();
       },
       .createSurface = [this](VkInstance instance){
-          VkSurfaceKHR s;
-          if (glfwCreateWindowSurface(instance, window.getWindow(), nullptr, &s) != VK_SUCCESS)
-              throw std::runtime_error("surface");
-          return s;
+        return window.createSurface(instance);
       }
     };
     VulkanEngine vkEngine;
@@ -124,8 +111,6 @@ private:
     Renderer renderer;
 
     Scene scene;
-
-    WindowDataProvider windowDataProvider;
 
     AppClose appClose;
 

@@ -1,6 +1,4 @@
 #pragma once
-#include <GLFW/glfw3.h>
-
 #include <vulkan/vulkan_raii.hpp>
 #include <iostream>
 #include <stdexcept>

@@ -9,9 +9,8 @@ target_include_directories(AppWindow
 )
 
 target_link_libraries(AppWindow
-    PRIVATE Vulkan::Vulkan 
-    PRIVATE glfw
+    PUBLIC Vulkan::Vulkan 
+    PUBLIC glfw
     PUBLIC AppInput
-    PUBLIC Engine
     PUBLIC AppEvent
 )

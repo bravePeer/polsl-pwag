@@ -1,7 +1,9 @@
 #pragma once
 #include <GLFW/glfw3.h>
-#include "window/window_data_provider.hpp"
+#include <vector>
+#include <stdexcept>
 #include "event/event_bus.hpp"
+#include "input/input.hpp"
 
 class Window
 {
@@ -37,11 +39,6 @@ public:
         return window;
     }
 
-    void setDataProvider(const WindowDataProvider& dataProvider)
-    {
-        windowDataProvider = dataProvider;
-    }
-    
     /// @brief Use events
     void initWindowCallbacks();
 
@@ -54,12 +51,31 @@ public:
     bool waitIfMinimize();
 
     std::vector<const char*> getRequiredInstanceExtensions() const;
+
+    /// @brief 
+    /// @return pair<int: width, int: height> 
+    std::pair<int, int> getFrameBufferSize()
+    {
+        int w;
+        int h;
+        glfwGetFramebufferSize(window, &w, &h);
+        return std::pair{w, h};
+    }
+
+    VkSurfaceKHR createSurface(VkInstance instance)
+    {
+        VkSurfaceKHR s;
+        if (glfwCreateWindowSurface(instance, window, nullptr, &s) != VK_SUCCESS)
+        {
+            throw std::runtime_error("surface");
+        }
+        return s;
+    }
     
 private:
     GLFWwindow* window = nullptr;
     Input& input;
     EventBus& eventBus;
-    WindowDataProvider windowDataProvider;
 
     double storedCursorX = 0.;
     double storedCursorY = 0.;
