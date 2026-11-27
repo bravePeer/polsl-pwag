@@ -1,7 +1,10 @@
 #include "app/app.hpp"
-#include "engine/gpu_loader.hpp"
+#include "engine/engine.hpp"
+#include "resource/resource_models.hpp"
+#include "component/component_movement.hpp"
+#include "component/component_any.hpp"
 
-void loadScene(ResourceManager& resourceManager, Scene& scene)
+void loadScene(VulkanEngine& vkEngine, ResourceManager& resourceManager, Scene& scene)
 {
     resourceManager.load<ResourceMesh>("cube", 
         std::make_unique<ResourceMesh::ResourceMeshData>(
@@ -14,7 +17,7 @@ void loadScene(ResourceManager& resourceManager, Scene& scene)
     ));
     auto coneMesh = resourceManager.getResource<ResourceMesh>("cone");
     auto ref = resourceManager.getMeshes();
-    GpuLoader::getGpuLoader().loadMeshes(ref);
+    vkEngine.loadMeshes(ref);
 
     auto& camera = scene.createEntity("main_camera");
     camera.addComponent<ComponentCamera>();
@@ -51,17 +54,12 @@ void loadScene(ResourceManager& resourceManager, Scene& scene)
 
 void App::init()
 {
-    loadScene(resourceManager, scene);
+    loadScene(vkEngine, resourceManager, scene);
 
-    buffCreator.addToGenerate(scene.getEntities());
-    buffCreator.createBuffers();
-    buffCreator.createDescriptorSet();
-    buffCreator.bindUboOffsets();
+    vkEngine.initBuffers(scene.getEntities());
     vkEngine.init();
-    vkEngine.setRenderer(&renderer);
-    
-    renderer.setBuffCreator(&buffCreator);
-    renderer.setResourceManager(&resourceManager);
+
+    vkEngine.setResourceManager(&resourceManager);
 
     scene.initialize();
 }

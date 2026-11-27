@@ -8,26 +8,12 @@
 #include "engine/gpu_buffer.hpp"
 
 /// @brief Loads resources to GPU memory
-/// @todo Change to object in engine not singleton
 class GpuLoader
 {
 public:
-    static GpuLoader& getGpuLoader()
-    {
-        static GpuLoader gpuLoader;
-        return gpuLoader;
-    }
-
-    void release()
-    {
-        vertexBuffer = {};
-        indexBuffer  = {};
-    }
-
-    void setEngineContextGetter(std::function<VulkanContext()> fun)
-    {
-        engineContextGetter = fun;
-    }
+    explicit GpuLoader(VulkanContext vkContext)
+    : vkContext(vkContext)
+    { }
 
     const GpuBuffer& getVertexBuffer() const
     {
@@ -54,10 +40,7 @@ public:
 
 
 private:
-    GpuLoader() = default;
-
-    /// @brief This is not good implementation
-    std::function<VulkanContext()> engineContextGetter = nullptr;
+    VulkanContext vkContext;
 
     /// Resource GPU storage
     GpuBuffer vertexBuffer;
@@ -66,7 +49,7 @@ private:
 
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
     {
-        vk::PhysicalDeviceMemoryProperties memProperties = engineContextGetter().physicalDevice.getMemoryProperties();
+        vk::PhysicalDeviceMemoryProperties memProperties = vkContext.physicalDevice.getMemoryProperties();
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
         {
@@ -81,7 +64,7 @@ private:
 
     GpuBuffer createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties)
     {
-        const auto& device = engineContextGetter().device;
+        const auto& device = vkContext.device;
 
         GpuBuffer buffer;
 
@@ -106,7 +89,7 @@ private:
 
     void copyBuffer(const vk::raii::Buffer& dstBuffer, const vk::raii::Buffer& srcBuffer, vk::DeviceSize size)
     {
-        const auto& vulkanContext = engineContextGetter();
+        const auto& vulkanContext = vkContext;
 
         vk::CommandBufferAllocateInfo allocInfo = {
             .commandPool = vulkanContext.commandPool, 

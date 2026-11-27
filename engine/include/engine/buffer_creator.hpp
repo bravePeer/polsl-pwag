@@ -1,22 +1,20 @@
 #pragma once 
+#include <vulkan/vulkan_raii.hpp>
+#include <glm/glm.hpp>
+#include <vector>
 #include "engine/context.hpp"
+#include "engine/gpu_buffer.hpp"
+#include "engine/ubo.hpp"
+#include "resource/resource.hpp"
 #include "component/entity.hpp"
 #include "component/component_mesh.hpp"
 #include "component/component_transform.hpp"
-#include "resource/resource.hpp"
-#include <vector>
-#include <vulkan/vulkan_raii.hpp>
-#include <glm/glm.hpp>
-#include "engine/gpu_buffer.hpp"
-#include "engine/ubo.hpp"
-
-
 
 /// @brief Create VMA (Vulkan Memory Allocator)
 class BufferCreator
 {
 public:
-    BufferCreator(VulkanContext vkContext)
+    explicit BufferCreator(VulkanContext vkContext)
     : vkContext(vkContext)
     { }
 

@@ -12,20 +12,15 @@ class Renderer
 {
 public:
 
-    Renderer(VulkanContext vkContext)
-    : vkContext(vkContext)
+    Renderer(VulkanContext vkContext, BufferCreator& buffCreator, GpuLoader& gpuLoader)
+    : vkContext(vkContext), buffCreator(buffCreator), gpuLoader(gpuLoader)
     { }
 
     void setResourceManager(ResourceManager* rm)
     {
         resourceManager = rm;
     }
-    
-    void setBuffCreator(BufferCreator* bc)
-    {
-        buffCreator = bc;
-    }
-
+ 
     void addEntities(std::vector<Entity*> entitiesToRender)
     {
         meshesReadyToRender.clear();
@@ -44,15 +39,8 @@ public:
             throw std::runtime_error("ResourceManager not set");
         }
 
-        if(!buffCreator)
-        {
-            throw std::runtime_error("BuffCreator not set");
-        }
-
-        // auto& commandBuffer = vkContext.commandBuffer;
-
-        auto& veticesBuffer = GpuLoader::getGpuLoader().getVertexBuffer();
-        auto& indicesBuffer = GpuLoader::getGpuLoader().getIndexBuffer();
+        auto& veticesBuffer = gpuLoader.getVertexBuffer();
+        auto& indicesBuffer = gpuLoader.getIndexBuffer();
         
         commandBuffer.bindVertexBuffers(0, *veticesBuffer.buffer, {0});
         commandBuffer.bindIndexBuffer(*indicesBuffer.buffer, 0, vk::IndexType::eUint32);
@@ -68,7 +56,7 @@ public:
                     vk::PipelineBindPoint::eGraphics,
                     pipelineLayout, 
                     0,
-                    *buffCreator->getDescriptorSets(), 
+                    *buffCreator.getDescriptorSets(), 
                     offset
                 );
                 
@@ -84,11 +72,11 @@ public:
         }
     }
 
-    
-
 private:
     VulkanContext vkContext;
+    BufferCreator& buffCreator;
+    GpuLoader& gpuLoader;
+    
     std::unordered_map<ResourceMesh*, std::vector<ComponentMesh*>> meshesReadyToRender;
     ResourceManager* resourceManager = nullptr;
-    BufferCreator* buffCreator = nullptr;
 };

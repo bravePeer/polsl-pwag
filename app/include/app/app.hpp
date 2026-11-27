@@ -1,50 +1,22 @@
 #pragma once
-#include <iostream>
-#include <stdexcept>
-#include <chrono>
-#include <memory>
-
-#include "app/app_config.hpp"
 #include "window/window.hpp"
 #include "engine/engine.hpp"
-#include "engine/buffer_creator.hpp"
 
 #include "component/entity.hpp"
-#include "component/component_spamer.hpp"
-#include "component/component_transform.hpp"
 #include "component/component_camera.hpp"
-#include "component/component_utils.hpp"
-#include "component/component_mesh.hpp"
-#include "component/component_any.hpp"
-
-#include "resource/resource_manager.hpp"
-#include "resource/resource_mesh.hpp"
-#include "resource/resource_models.hpp"
-
 #include "component/scene.hpp"
 
-#include "component/component_movement.hpp"
-
+#include "resource/resource_manager.hpp"
 #include "app/app_event_listener.hpp"
-#include "engine/gpu_loader.hpp"
 
 class App
 {
 public:
     App(int width, int height, const char* title)
     : window(width, height, title, input),
-    //   windowProvider,
       vkEngine(windowProvider),
-      buffCreator(vkEngine.getContext()),
-      renderer(vkEngine.getContext()),
       appClose(shouldExit)
     {
-        vkEngine.setBufferCreator(&buffCreator);
-
-        GpuLoader::getGpuLoader().setEngineContextGetter([&engine = this->vkEngine](){
-            return engine.getContext();
-        });
-
         window.initWindowCallbacks();
 
         vkEngine.setResourceManager(&resourceManager);
@@ -55,7 +27,6 @@ public:
     ~App() noexcept
     { 
         vkEngine.getContext().device.waitIdle();
-        GpuLoader::getGpuLoader().release();
     }
 
     void init();
@@ -107,8 +78,6 @@ private:
     VulkanEngine vkEngine;
     ResourceManager resourceManager;
     SceneCulling culling;
-    BufferCreator buffCreator;
-    Renderer renderer;
 
     Scene scene;
 
@@ -140,13 +109,13 @@ private:
         
         auto camera = scene.getEntityByName("main_camera")->getComponent<ComponentCamera>();
 
-        buffCreator.set(camera->getViewMatrix(), camera->getProjectionMatrix());
+        vkEngine.setCamera(camera->getViewMatrix(), camera->getProjectionMatrix());
     }
 
     void render()
     {
         std::vector<Entity*> visibleEntities = culling.getVisibleEntities(scene);
-        renderer.addEntities(visibleEntities);
+        vkEngine.addEntitiesToDraw(visibleEntities);
         vkEngine.drawFrame();
     }
 

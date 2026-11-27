@@ -39,7 +39,7 @@ class VulkanEngine
 {
 public:
     explicit VulkanEngine(WindowProvider& windowProvider)
-    : windowProvider(windowProvider)
+    : windowProvider(windowProvider), bufferCreator(getContext()), gpuLoader(getContext()), renderer(getContext(), bufferCreator, gpuLoader)
     {
         if (!windowProvider.getFramebufferSize || !windowProvider.createSurface)
         {
@@ -69,10 +69,32 @@ public:
         cleanupSwapChain();
     }
 
-    
-    void createTextureImage()
+    void setCamera(const glm::mat4 &view, glm::mat4 proj)
     {
-        // Loading image
+        bufferCreator.set(view, proj);
+    } 
+   
+    void addEntitiesToDraw(std::vector<Entity*> entitiesToRender)
+    {
+        renderer.addEntities(entitiesToRender);
+    }
+
+    void setResourceManager(ResourceManager* resourceManager)
+    {
+        renderer.setResourceManager(resourceManager);
+    }
+
+    void initBuffers(std::vector<std::unique_ptr<Entity>>& entities)
+    {
+        bufferCreator.addToGenerate(entities);
+        bufferCreator.createBuffers();
+        bufferCreator.createDescriptorSet();
+        bufferCreator.bindUboOffsets();
+    }
+
+    void loadMeshes(std::vector<ResourceMesh*>& meshes)
+    {
+        gpuLoader.loadMeshes(meshes);
     }
     
     vk::raii::ImageView createImageView(const vk::Image& image, const vk::Format format)
@@ -130,11 +152,6 @@ public:
             .queue = queue,
             .commandPool = commandPool
         };
-    }
-
-    void setBufferCreator(BufferCreator* bf)
-    {
-        buffCreator = bf;
     }
 
     void drawFrame()
@@ -208,19 +225,8 @@ public:
         framebufferResized = resized;
     }
 
-    void setRenderer(Renderer* r)
-    {
-        renderer = r;
-    }
-
-    void setResourceManager(ResourceManager* rm)
-    {
-        resourceManager = rm;
-    }
-
 private:
     WindowProvider& windowProvider;
-    // GLFWwindow* window = nullptr;
     vk::raii::Context context;
     vk::raii::Instance instance = nullptr;
 
@@ -258,6 +264,10 @@ private:
     bool framebufferResized = false;
 
     ResourceManager* resourceManager = nullptr;
+
+    BufferCreator bufferCreator;
+    GpuLoader gpuLoader;
+    Renderer renderer;
 
     void createSyncObjects()
     {
@@ -661,7 +671,7 @@ private:
 
         vk::PipelineLayoutCreateInfo pipelineLayoutInfo{ 
             .setLayoutCount = 1, 
-            .pSetLayouts = &*buffCreator->getDescriptorSetLayout(),
+            .pSetLayouts = &*bufferCreator.getDescriptorSetLayout(),
             .pushConstantRangeCount = 1,
             .pPushConstantRanges = &pushRange
         };
@@ -746,12 +756,12 @@ private:
         commandBuffer.pipelineBarrier2(dependency_info);
     }
 
-    BufferCreator* buffCreator = nullptr;
-    Renderer* renderer = nullptr;
+    // BufferCreator* bufferCreator = nullptr;
+    // Renderer* renderer = nullptr;
 
     void updateUniformBuffer(uint32_t currentImage)
     {
-        buffCreator->updateUbo(currentImage);
+        bufferCreator.updateUbo(currentImage);
     }
 
     void recordCommandBuffer(uint32_t imageIndex)
@@ -815,7 +825,7 @@ private:
             pc
         );
 
-        renderer->renderMeshes(commandBuffer, pipelineLayout);
+        renderer.renderMeshes(commandBuffer, pipelineLayout);
 
         // End rendering
         commandBuffer.endRendering();
